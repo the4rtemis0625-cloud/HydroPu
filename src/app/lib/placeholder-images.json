@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-hydroponics",
+      "description": "Lush green hydroponic lettuce system",
+      "imageUrl": "https://images.unsplash.com/photo-1558449028-b53a39d100fc?q=80&w=1200&h=800&auto=format&fit=crop",
+      "imageHint": "hydroponics lettuce"
+    },
+    {
+      "id": "user-avatar",
+      "description": "User profile picture",
+      "imageUrl": "https://picsum.photos/seed/user123/100/100",
+      "imageHint": "profile portrait"
+    }
+  ]
+}
