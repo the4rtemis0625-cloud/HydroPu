@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -29,14 +30,18 @@ export default function DashboardOverview() {
   useEffect(() => {
     if (!database) return;
 
-    // Listen to the 'history/latest' path in Realtime Database
+    // Listen to the 'history/latest' path in Realtime Database as requested
     const sensorsRef = ref(database, 'history/latest');
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setSensors(prev => ({
           ...prev,
-          ...data
+          ph: data.ph ?? data.pH ?? prev.ph,
+          waterTemp: data.waterTemp ?? data.waterTemperature ?? prev.waterTemp,
+          airTemp: data.airTemp ?? data.airTemperature ?? prev.airTemp,
+          humidity: data.humidity ?? prev.humidity,
+          ec: data.ec ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
         }));
       }
     });
@@ -110,17 +115,17 @@ export default function DashboardOverview() {
             System Health
           </h3>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Pump Status</span>
-              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full uppercase">Operational</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Pump Status</span>
+              <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-full uppercase text-[10px]">Operational</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Lighting Cycle</span>
-              <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full uppercase">Active (16/8)</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Lighting Cycle</span>
+              <span className="font-bold text-accent bg-accent/10 px-2 py-1 rounded-full uppercase text-[10px]">Active (16/8)</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Nutrient Level</span>
-              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full uppercase">75% Capacity</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Nutrient Level</span>
+              <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-full uppercase text-[10px]">75% Capacity</span>
             </div>
           </div>
         </div>

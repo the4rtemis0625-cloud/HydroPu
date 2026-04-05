@@ -57,14 +57,14 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to the 'history/latest' path in Realtime Database
+    // Listen to the 'history/latest' path in Realtime Database as requested
     const sensorsRef = ref(rtdb, 'history/latest');
     
-    // onValue is a real-time listener that triggers every time data changes
+    // onValue is a real-time listener that triggers every time data changes in your console
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Map RTDB data to state. We handle potential key variations (e.g., pH vs ph)
+        // Map RTDB data to state. We handle potential key variations
         setSensors(prev => ({
           ...prev,
           ph: data.ph ?? data.pH ?? prev.ph,
@@ -73,6 +73,7 @@ export default function OnePager() {
           humidity: data.humidity ?? prev.humidity,
           ec: data.ec ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
         }));
+        // Update the timestamp so you can see it's live
         setLastUpdated(new Date().toLocaleTimeString());
       }
     });
@@ -303,28 +304,28 @@ export default function OnePager() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Pump Status</p>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Pump Status</div>
                       <div className="font-bold text-primary flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-primary" />
                         Operational
                       </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Lighting</p>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Lighting</div>
                       <div className="font-bold text-accent flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-accent" />
                         Active (16/8)
                       </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Cloud Service</p>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Cloud Service</div>
                       <div className="font-bold text-primary flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
+                        <div className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {user ? 'Authenticated' : 'Offline'}
                       </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Database Sync</p>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Database Sync</div>
                       <div className="font-bold text-primary flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                         Realtime
