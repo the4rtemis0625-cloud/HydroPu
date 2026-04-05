@@ -1,0 +1,311 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user of the AquaSense application, linked to an external authentication system. This entity stores non-sensitive user information necessary for personalizing the application experience.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity. This ID is typically provided by an external authentication system and serves as the primary key."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user, used for communication and identification purposes.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the user profile was updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CropType": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CropType",
+      "type": "object",
+      "description": "Defines a type of plant and its optimal environmental parameters for hydroponic growth. This data is used for setting thresholds, displaying alerts, and informing AI growth optimization recommendations.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CropType entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The common name of the crop (e.g., 'Lettuce (Romaine)', 'Tomato (Cherry)')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description or notes about this specific crop type, including its general characteristics or growth cycle."
+        },
+        "idealPHMin": {
+          "type": "number",
+          "description": "The minimum ideal pH value for the nutrient solution for this crop type."
+        },
+        "idealPHMax": {
+          "type": "number",
+          "description": "The maximum ideal pH value for the nutrient solution for this crop type."
+        },
+        "idealWaterTemperatureMin": {
+          "type": "number",
+          "description": "The minimum ideal water temperature (in Celsius) for this crop type."
+        },
+        "idealWaterTemperatureMax": {
+          "type": "number",
+          "description": "The maximum ideal water temperature (in Celsius) for this crop type."
+        },
+        "idealAirTemperatureMin": {
+          "type": "number",
+          "description": "The minimum ideal ambient air temperature (in Celsius) for this crop type."
+        },
+        "idealAirTemperatureMax": {
+          "type": "number",
+          "description": "The maximum ideal ambient air temperature (in Celsius) for this crop type."
+        },
+        "idealHumidityMin": {
+          "type": "number",
+          "description": "The minimum ideal relative humidity percentage for this crop type."
+        },
+        "idealHumidityMax": {
+          "type": "number",
+          "description": "The maximum ideal relative humidity percentage for this crop type."
+        },
+        "idealNutrientValueMin": {
+          "type": "number",
+          "description": "The minimum ideal nutrient concentration value (e.g., EC or TDS) for this crop type."
+        },
+        "idealNutrientValueMax": {
+          "type": "number",
+          "description": "The maximum ideal nutrient concentration value (e.g., EC or TDS) for this crop type."
+        },
+        "nutrientUnit": {
+          "type": "string",
+          "description": "The unit of measurement for nutrient values (e.g., 'EC (dS/m)', 'TDS (ppm)')."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "idealPHMin",
+        "idealPHMax",
+        "idealWaterTemperatureMin",
+        "idealWaterTemperatureMax",
+        "idealAirTemperatureMin",
+        "idealAirTemperatureMax",
+        "idealHumidityMin",
+        "idealHumidityMax",
+        "idealNutrientValueMin",
+        "idealNutrientValueMax",
+        "nutrientUnit"
+      ]
+    },
+    "HydroponicsSystem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "HydroponicsSystem",
+      "type": "object",
+      "description": "Represents a single physical hydroponics system being monitored by a user. Each system is linked to a specific user and currently grows a defined crop type.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the HydroponicsSystem entity. This serves as the primary key."
+        },
+        "name": {
+          "type": "string",
+          "description": "A user-defined, descriptive name for the hydroponics system (e.g., 'Living Room Setup 1', 'Outdoor Hydroponic Garden')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description or additional notes about the hydroponics system, such as its type (e.g., DWC, NFT) or size."
+        },
+        "location": {
+          "type": "string",
+          "description": "The physical location where the hydroponics system is set up (e.g., 'Kitchen', 'Balcony', 'Grow Tent')."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who owns and manages this hydroponics system. (Relationship: UserProfile 1:N HydroponicsSystem)"
+        },
+        "cropTypeId": {
+          "type": "string",
+          "description": "Reference to the CropType currently being grown in this system. This linkage provides the ideal parameter ranges for monitoring and AI recommendations. (Relationship: HydroponicsSystem 1:1 CropType)"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "A flag indicating whether the system is currently active and expected to be sending sensor data."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the hydroponics system record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the hydroponics system record was updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "userId",
+        "cropTypeId",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SensorReading": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SensorReading",
+      "type": "object",
+      "description": "Records a single set of environmental sensor measurements from a specific hydroponics system at a precise point in time. This data is used for real-time monitoring and historical trend analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SensorReading entity. This serves as the primary key."
+        },
+        "systemId": {
+          "type": "string",
+          "description": "Reference to the HydroponicsSystem from which this reading was taken. (Relationship: HydroponicsSystem 1:N SensorReading)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The exact date and time (UTC) when the sensor reading was recorded, crucial for historical data trends.",
+          "format": "date-time"
+        },
+        "pHValue": {
+          "type": "number",
+          "description": "The pH value of the water in the hydroponics system."
+        },
+        "waterTemperature": {
+          "type": "number",
+          "description": "The temperature of the water in Celsius."
+        },
+        "airTemperature": {
+          "type": "number",
+          "description": "The ambient air temperature around the hydroponics system in Celsius."
+        },
+        "humidity": {
+          "type": "number",
+          "description": "The relative humidity of the air around the hydroponics system, expressed as a percentage (0-100)."
+        },
+        "nutrientValue": {
+          "type": "number",
+          "description": "The nutrient concentration value (e.g., Electrical Conductivity (EC) or Total Dissolved Solids (TDS)) of the water. The unit is implied by the 'nutrientUnit' in the associated CropType."
+        }
+      },
+      "required": [
+        "id",
+        "systemId",
+        "timestamp",
+        "pHValue",
+        "waterTemperature",
+        "airTemperature",
+        "humidity",
+        "nutrientValue"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profiles. Access is restricted to the user whose ID matches '{userId}'. This path establishes the user's root for their private data."
+        }
+      },
+      {
+        "path": "/cropTypes/{cropTypeId}",
+        "definition": {
+          "entityName": "CropType",
+          "schema": {
+            "$ref": "#/backend/entities/CropType"
+          },
+          "description": "Contains definitions for various crop types and their optimal growing parameters. This collection is globally accessible for read operations by all authenticated users, allowing systems to reference ideal conditions. No user-specific authorization is required for reading this data.",
+          "params": [
+            {
+              "name": "cropTypeId",
+              "description": "The unique identifier for a specific crop type."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/hydroponicsSystems/{systemId}",
+        "definition": {
+          "entityName": "HydroponicsSystem",
+          "schema": {
+            "$ref": "#/backend/entities/HydroponicsSystem"
+          },
+          "description": "Stores the details for each hydroponics system owned by a specific user. The '{userId}' in the path ensures that only the owning user can access their systems, achieving authorization independence. Each document also contains 'userId' for data integrity and easier querying if needed.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the hydroponics system."
+            },
+            {
+              "name": "systemId",
+              "description": "The unique identifier for a specific hydroponics system."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/hydroponicsSystems/{systemId}/sensorReadings/{readingId}",
+        "definition": {
+          "entityName": "SensorReading",
+          "schema": {
+            "$ref": "#/backend/entities/SensorReading"
+          },
+          "description": "Contains time-series sensor readings for a specific hydroponics system. Nested under the system and user paths, access is inherently restricted to the owning user of the parent system. The '{userId}' and '{systemId}' in the path provide the authorization context, ensuring authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the hydroponics system and its readings."
+            },
+            {
+              "name": "systemId",
+              "description": "The unique identifier for the hydroponics system from which the readings were taken."
+            },
+            {
+              "name": "readingId",
+              "description": "The unique identifier for a specific sensor reading."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure for AquaSense prioritizes secure, scalable, and debuggable authorization by strictly adhering to Authorization Independence and Structural Segregation principles.User profiles (`UserProfile`) are stored directly under `/users/{userId}`, making ownership explicit and rules simple (`request.auth.uid == userId`). This path-based ownership is extended to user-owned hydroponics systems (`HydroponicsSystem`) at `/users/{userId}/hydroponicsSystems/{systemId}`, directly associating each system with its owner. Further, `SensorReading` entities are nested hierarchically under their respective systems at `/users/{userId}/hydroponicsSystems/{systemId}/sensorReadings/{readingId}`. This deep nesting ensures that access to sensor data is automatically scoped to the owning user and system without requiring complex `get()` operations in security rules, thus guaranteeing Authorization Independence.The `CropType` entity, representing global plant parameters, is placed in a top-level collection `/cropTypes/{cropTypeId}`. This adheres to Structural Segregation, as all crop types share a homogeneous security posture (e.g., read-only for all authenticated users, or managed by an admin role via a separate collection, not specified here). This separation prevents mixing public/global data with private user-owned data.The design supports QAPs (Query As Permissions) by ensuring that any `list` operation naturally filters by the authenticated user's ID due to the hierarchical path structure (e.g., listing systems for `request.auth.uid` means querying `/users/{request.auth.uid}/hydroponicsSystems`). All documents within these user-specific subcollections implicitly inherit the `userId` from their parent path, making authorization checks atomic and efficient without needing to fetch parent documents. Denormalization of authorization context is achieved implicitly through the path parameters, where `{userId}` directly corresponds to `request.auth.uid` for all user-specific data, eliminating the need for `get()` calls to determine ownership for nested data."
+  }
+}

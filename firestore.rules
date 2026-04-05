@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * AQUASENSE SECURITY RULES - PROTOTYPING MODE
+     *
+     * Core Philosophy:
+     * This ruleset enforces a strict hierarchical ownership model. All user-specific data
+     * is nested under the user's unique identifier path, ensuring that users can only
+     * access and modify their own hydroponic systems and sensor data.
+     *
+     * Data Structure:
+     * - /users/{userId}: Root profile for each user.
+     * - /users/{userId}/hydroponicsSystems/{systemId}: Systems owned by the user.
+     * - /users/{userId}/hydroponicsSystems/{systemId}/sensorReadings/{readingId}: Time-series data.
+     * - /cropTypes/{cropTypeId}: Global reference data for plant parameters.
+     *
+     * Key Security Decisions:
+     * 1. Authorization Independence: Access is determined by the document path parameters 
+     *    ({userId}) matching the authenticated user's UID (request.auth.uid). This avoids 
+     *    costly cross-document lookups.
+     * 2. Structural Segregation: Global configuration data (CropTypes) is separated from 
+     *    private user data.
+     * 3. Relational Integrity: On document creation, the rules enforce that internal 
+     *    linkage fields (like userId or systemId) match the path parameters.
+     * 4. Denormalization for Performance: By nesting data, we allow for direct, high-performance 
+     *    security checks without the need for the get() function.
+     */
+
+    // --- Helper Functions ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the user is the owner and the document exists.
+     * Essential for secure update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for the root UserProfile document.
+     * @path /users/{userId}
+     * @allow Authenticated user matching the ID can create, read, or update their own profile.
+     * @deny User 'abc' trying to read profile 'xyz'.
+     * @principle Ownership (Self-Creation).
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for hydroponic systems belonging to a specific user.
+       * @path /users/{userId}/hydroponicsSystems/{systemId}
+       * @allow User 'abc' creates a system under /users/abc/hydroponicsSystems/sys123.
+       * @deny User 'abc' updates a system under /users/def/hydroponicsSystems/sys123.
+       * @principle Hierarchical Ownership and Path Consistency.
+       */
+      match /hydroponicsSystems/{systemId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId && request.resource.data.id == systemId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.id == resource.data.id;
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Rules for sensor readings nested under a specific system.
+         * @path /users/{userId}/hydroponicsSystems/{systemId}/sensorReadings/{readingId}
+         * @allow User 'abc' lists readings for their own system 'sys123'.
+         * @deny User 'xyz' attempts to read data from 'abc's systems.
+         * @principle Deeply Nested Authorization Independence.
+         */
+        match /sensorReadings/{readingId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && request.resource.data.systemId == systemId && request.resource.data.id == readingId;
+          allow update: if isExistingOwner(userId) && request.resource.data.systemId == resource.data.systemId && request.resource.data.id == resource.data.id;
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+    }
+
+    /**
+     * @description Rules for global crop definitions.
+     * @path /cropTypes/{cropTypeId}
+     * @allow Any authenticated user can read crop parameters.
+     * @deny Unauthenticated users reading, or any user attempting to write/modify.
+     * @principle Authenticated Read-Only Global Data.
+     */
+    match /cropTypes/{cropTypeId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false; // TODO: Implement admin-only writes if a management role is added.
+    }
+  }
+}
