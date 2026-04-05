@@ -34,13 +34,14 @@ export default function DashboardOverview() {
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        // Map RTDB data to state using robust checks for hardware specific keys
         setSensors(prev => ({
           ...prev,
-          ph: data.ph ?? data.pH ?? prev.ph,
-          waterTemp: data.waterTemp ?? data.waterTemperature ?? data.temperature ?? prev.waterTemp,
-          airTemp: data.airTemp ?? data.airTemperature ?? data.temperature ?? prev.airTemp,
-          humidity: data.humidity ?? prev.humidity,
-          ec: data.ec ?? data.tds ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
+          ph: data.ph !== undefined ? data.ph : (data.pH ?? prev.ph),
+          waterTemp: data.temperature !== undefined ? data.temperature : (data.waterTemp ?? data.waterTemperature ?? prev.waterTemp),
+          airTemp: data.temperature !== undefined ? data.temperature : (data.airTemp ?? data.airTemperature ?? prev.airTemp),
+          humidity: data.humidity !== undefined ? data.humidity : prev.humidity,
+          ec: data.tds !== undefined ? data.tds : (data.ec ?? data.ecTds ?? prev.ec),
         }));
       }
     });

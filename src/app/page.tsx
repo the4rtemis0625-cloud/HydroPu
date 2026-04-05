@@ -43,6 +43,8 @@ export default function OnePager() {
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  
+  // Initialize with null to clearly distinguish between stale/initial data and live data
   const [sensors, setSensors] = useState<SensorData>({
     ph: 6.2,
     waterTemp: 22.4,
@@ -56,20 +58,20 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to the 'history/latest' path in Realtime Database
+    // Listen to the 'history/latest' path in Realtime Database as specified
     const sensorsRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Map RTDB data to state. Supporting multiple possible key variations from hardware controllers
+        // Map RTDB data to state using the specific keys provided by the user hub
         setSensors(prev => ({
           ...prev,
-          ph: data.ph ?? data.pH ?? prev.ph,
-          waterTemp: data.waterTemp ?? data.waterTemperature ?? data.temperature ?? prev.waterTemp,
-          airTemp: data.airTemp ?? data.airTemperature ?? data.temperature ?? prev.airTemp,
-          humidity: data.humidity ?? prev.humidity,
-          ec: data.ec ?? data.tds ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
+          ph: data.ph !== undefined ? data.ph : (data.pH ?? prev.ph),
+          waterTemp: data.temperature !== undefined ? data.temperature : (data.waterTemp ?? data.waterTemperature ?? prev.waterTemp),
+          airTemp: data.temperature !== undefined ? data.temperature : (data.airTemp ?? data.airTemperature ?? prev.airTemp),
+          humidity: data.humidity !== undefined ? data.humidity : prev.humidity,
+          ec: data.tds !== undefined ? data.tds : (data.ec ?? data.ecTds ?? prev.ec),
         }));
         setLastUpdated(new Date().toLocaleTimeString());
       }
@@ -334,7 +336,7 @@ export default function OnePager() {
                 <div className="flex flex-col justify-center gap-6">
                   <div className="bg-primary p-8 rounded-[2rem] text-primary-foreground shadow-xl">
                     <h4 className="text-lg font-bold flex items-center gap-2 mb-4">
-                      <Cloud className="w-5 h-5" />
+                      <Cloud className="w-5 l-5" />
                       Verify Console Connection
                     </h4>
                     <p className="text-sm text-primary-foreground/70 mb-6">
