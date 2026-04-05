@@ -29,8 +29,8 @@ export default function DashboardOverview() {
   useEffect(() => {
     if (!database) return;
 
-    // Listen to the 'sensors' path in Realtime Database
-    const sensorsRef = ref(database, 'sensors');
+    // Listen to the 'history/latest' path in Realtime Database
+    const sensorsRef = ref(database, 'history/latest');
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {

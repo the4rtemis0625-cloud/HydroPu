@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
   Waves, 
   Activity, 
@@ -13,17 +12,9 @@ import {
   Thermometer, 
   Droplets, 
   Leaf,
-  LayoutDashboard,
-  PieChart,
-  History,
-  Settings,
-  Bell,
-  LogOut,
-  User,
   Zap
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useUser, useFirestore, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -63,11 +54,12 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to the 'sensors' path in Realtime Database
-    const sensorsRef = ref(rtdb, 'sensors');
+    // Listen to the 'history/latest' path in Realtime Database as requested
+    const sensorsRef = ref(rtdb, 'history/latest');
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        // Map RTDB data to state. If keys match directly, we merge.
         setSensors(prev => ({
           ...prev,
           ...data
@@ -308,6 +300,7 @@ export default function OnePager() {
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Cloud Service</p>
+                      {/* FIXED: Using div instead of p to avoid hydration errors from span nesting */}
                       <div className="font-bold text-primary flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {user ? 'Authenticated' : 'Offline'}
@@ -315,6 +308,7 @@ export default function OnePager() {
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Database Sync</p>
+                      {/* FIXED: Using div instead of p to avoid hydration errors from span nesting */}
                       <div className="font-bold text-primary flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                         Realtime
