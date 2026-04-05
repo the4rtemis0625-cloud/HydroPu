@@ -1,26 +1,82 @@
-
 'use client';
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Leaf, Waves, Activity, LogIn, Cloud, Send, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
+import { 
+  Waves, 
+  Activity, 
+  Cloud, 
+  Send, 
+  CheckCircle2, 
+  FlaskConical, 
+  Thermometer, 
+  Droplets, 
+  Leaf,
+  LayoutDashboard,
+  PieChart,
+  History,
+  Settings,
+  Bell,
+  LogOut,
+  User,
+  Zap
+} from "lucide-react";
 import Image from "next/image";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useUser, useFirestore, useAuth } from "@/firebase";
+import Link from "next/link";
+import { useUser, useFirestore, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { doc, serverTimestamp } from "firebase/firestore";
-import { useState } from "react";
+import { doc } from "firebase/firestore";
+import { ref, onValue } from "firebase/database";
+import { SensorCard } from "@/components/dashboard/sensor-card";
+import { HistoricalCharts } from "@/components/dashboard/historical-charts";
+import { AIOptimizer } from "@/components/dashboard/ai-optimizer";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
-export default function LandingPage() {
+interface SensorData {
+  ph?: number;
+  waterTemp?: number;
+  airTemp?: number;
+  humidity?: number;
+  ec?: number;
+}
+
+export default function OnePager() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const db = useFirestore();
+  const rtdb = useDatabase();
+  
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState(false);
+  const [sensors, setSensors] = useState<SensorData>({
+    ph: 6.2,
+    waterTemp: 22.4,
+    airTemp: 24.5,
+    humidity: 64,
+    ec: 1.8,
+  });
 
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-hydroponics');
+
+  useEffect(() => {
+    if (!rtdb) return;
+
+    // Listen to the 'sensors' path in Realtime Database
+    const sensorsRef = ref(rtdb, 'sensors');
+    const unsubscribe = onValue(sensorsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setSensors(prev => ({
+          ...prev,
+          ...data
+        }));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [rtdb]);
 
   const handleConnect = () => {
     initiateAnonymousSignIn(auth);
@@ -30,7 +86,7 @@ export default function LandingPage() {
     if (!user || !db) return;
     setSyncing(true);
     
-    const sampleId = "sample-system-001";
+    const sampleId = "sample-system-" + Date.now();
     const systemRef = doc(db, "users", user.uid, "hydroponicsSystems", sampleId);
     
     setDocumentNonBlocking(systemRef, {
@@ -45,7 +101,6 @@ export default function LandingPage() {
       updatedAt: new Date().toISOString(),
     }, { merge: true });
 
-    // Simulate feedback
     setTimeout(() => {
       setSyncing(false);
       setSynced(true);
@@ -54,128 +109,265 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center">
-      <header className="w-full max-w-7xl px-6 py-8 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary p-2 rounded-lg text-white">
-            <Waves className="w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-headline font-bold text-primary tracking-tight">AquaSense</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          {!user ? (
-            <Button onClick={handleConnect} disabled={isUserLoading} variant="outline" className="gap-2">
-              <Cloud className="w-4 h-4" />
-              Connect to Cloud
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-bold text-primary uppercase">Connected</span>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Navigation Header */}
+      <header className="sticky top-0 z-50 w-full bg-background/80 border-b border-muted/50 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary p-2 rounded-lg text-white">
+              <Waves className="w-5 h-5" />
             </div>
-          )}
-          <Link href="/dashboard">
-            <Button variant="ghost" className="gap-2">
-              <LogIn className="w-4 h-4" />
-              Sign In
-            </Button>
-          </Link>
+            <h1 className="text-xl font-headline font-bold text-primary tracking-tight">AquaSense</h1>
+          </div>
+          
+          <nav className="hidden md:flex items-center gap-8">
+            <a href="#monitor" className="text-sm font-medium hover:text-primary transition-colors">Monitoring</a>
+            <a href="#insights" className="text-sm font-medium hover:text-primary transition-colors">AI Insights</a>
+            <a href="#system" className="text-sm font-medium hover:text-primary transition-colors">System Hub</a>
+          </nav>
+
+          <div className="flex items-center gap-4">
+            {!user ? (
+              <Button onClick={handleConnect} disabled={isUserLoading} variant="outline" size="sm" className="gap-2">
+                <Cloud className="w-4 h-4" />
+                Connect to Cloud
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-bold text-primary uppercase">Live Connection</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="w-full max-w-7xl px-6 flex flex-col lg:flex-row items-center gap-12 py-12 lg:py-24">
-        <div className="flex-1 space-y-8">
-          <div className="space-y-4">
-            <h2 className="text-5xl lg:text-7xl font-headline font-extrabold text-primary leading-tight">
-              Precision Hydroponics <br />
-              <span className="text-accent">Simplified.</span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-xl">
-              Monitor, optimize, and scale your hydroponic systems with real-time data visualization and AI-powered growth insights.
-            </p>
-          </div>
-          
-          {user && (
-            <Card className="bg-primary text-primary-foreground border-none shadow-xl max-w-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Cloud className="w-5 h-5" />
-                  Cloud Connection Active
-                </CardTitle>
-                <CardDescription className="text-primary-foreground/70">
-                  Verify your database connection by pushing a sample record.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={handlePushSample} 
-                  disabled={syncing}
-                  className="w-full bg-accent hover:bg-accent/90 text-primary font-bold"
-                >
-                  {syncing ? "Syncing..." : synced ? "Synced Successfully!" : "Push Sample Collection"}
-                  {synced ? <CheckCircle2 className="w-4 h-4 ml-2" /> : <Send className="w-4 h-4 ml-2" />}
-                </Button>
-                <p className="mt-2 text-[10px] text-center opacity-60">
-                  This will create a 'users' collection in your Firestore console.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex gap-4">
-            <Link href="/dashboard">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8">
-                Go to Dashboard
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative w-full max-w-7xl mx-auto px-6 pt-12 pb-24 grid lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-5xl lg:text-7xl font-headline font-extrabold text-primary leading-tight">
+                Precision Hydroponics <br />
+                <span className="text-accent">Simplified.</span>
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-xl">
+                Monitor, optimize, and scale your hydroponic systems with real-time data visualization and AI-powered growth insights.
+              </p>
+            </div>
+            
+            <div className="flex gap-4">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8" asChild>
+                <a href="#monitor">View Live Data</a>
               </Button>
-            </Link>
-            <Button size="lg" variant="ghost" className="text-lg">
-              Learn More
-            </Button>
+              <Button size="lg" variant="ghost" className="text-lg">
+                Documentation
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="flex-1 w-full relative h-[400px] lg:h-[600px] rounded-3xl overflow-hidden shadow-2xl border-8 border-white">
-          {heroImage && (
-            <Image
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
-              fill
-              className="object-cover"
-              data-ai-hint={heroImage.imageHint}
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent" />
-        </div>
+          <div className="relative h-[400px] lg:h-[500px] rounded-3xl overflow-hidden shadow-2xl border-8 border-white">
+            {heroImage && (
+              <Image
+                src={heroImage.imageUrl}
+                alt={heroImage.description}
+                fill
+                className="object-cover"
+                data-ai-hint={heroImage.imageHint}
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent" />
+          </div>
+        </section>
+
+        {/* Monitoring Dashboard Section */}
+        <section id="monitor" className="py-24 bg-muted/30">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-headline font-bold text-primary">Live Monitoring</h2>
+                <p className="text-muted-foreground">Real-time telemetry from your controller hub</p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full border border-accent/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                </span>
+                <span className="text-xs font-bold text-accent uppercase tracking-tighter">Live Stream Active</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
+              <SensorCard 
+                label="pH Level"
+                value={sensors.ph ?? 0}
+                unit="pH"
+                icon={<FlaskConical className="w-4 h-4" />}
+                min={5.5}
+                max={6.5}
+                trend="stable"
+              />
+              <SensorCard 
+                label="Water Temp"
+                value={sensors.waterTemp ?? 0}
+                unit="°C"
+                icon={<Waves className="w-4 h-4" />}
+                min={18}
+                max={24}
+                trend="up"
+              />
+              <SensorCard 
+                label="Air Temp"
+                value={sensors.airTemp ?? 0}
+                unit="°C"
+                icon={<Thermometer className="w-4 h-4" />}
+                min={20}
+                max={28}
+                trend="down"
+              />
+              <SensorCard 
+                label="Humidity"
+                value={sensors.humidity ?? 0}
+                unit="%"
+                icon={<Droplets className="w-4 h-4" />}
+                min={50}
+                max={70}
+                trend="stable"
+              />
+              <SensorCard 
+                label="Nutrient EC"
+                value={sensors.ec ?? 0}
+                unit="mS/cm"
+                icon={<Activity className="w-4 h-4" />}
+                min={1.2}
+                max={2.5}
+                trend="up"
+              />
+            </div>
+
+            <HistoricalCharts />
+          </div>
+        </section>
+
+        {/* AI Insights Section */}
+        <section id="insights" className="py-24">
+          <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-start">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary text-xs font-bold uppercase">
+                <Zap className="w-3 h-3" />
+                Intelligence Layer
+              </div>
+              <h2 className="text-4xl font-headline font-bold text-primary leading-tight">
+                Tailored Optimization for Every Crop
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Our AI analyzes your specific environmental data against ideal growth curves for your selected crops. Get instant recommendations to prevent drift and maximize yield.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-secondary/50 rounded-2xl border border-primary/10">
+                  <h4 className="font-bold text-primary mb-1">98% Accuracy</h4>
+                  <p className="text-xs text-muted-foreground">Detection of parameter drift before it affects root health.</p>
+                </div>
+                <div className="p-4 bg-secondary/50 rounded-2xl border border-primary/10">
+                  <h4 className="font-bold text-primary mb-1">Adaptive Logic</h4>
+                  <p className="text-xs text-muted-foreground">Recommendations evolve based on your local micro-climate.</p>
+                </div>
+              </div>
+            </div>
+            <AIOptimizer />
+          </div>
+        </section>
+
+        {/* System Health Hub */}
+        <section id="system" className="py-24 bg-white/50 border-t border-muted">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="p-12 bg-background rounded-[2.5rem] border border-muted shadow-2xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl -mr-32 -mt-32" />
+              
+              <div className="relative z-10 grid md:grid-cols-2 gap-12">
+                <div className="space-y-6">
+                  <h3 className="text-3xl font-headline font-bold text-primary flex items-center gap-3">
+                    <Activity className="w-8 h-8 text-accent" />
+                    System Health Hub
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Pump Status</p>
+                      <div className="font-bold text-primary flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-primary" />
+                        Operational
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Lighting</p>
+                      <div className="font-bold text-accent flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-accent" />
+                        Active (16/8)
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Cloud Service</p>
+                      <div className="font-bold text-primary flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
+                        {user ? 'Authenticated' : 'Offline'}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Database Sync</p>
+                      <div className="font-bold text-primary flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                        Realtime
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-center gap-6">
+                  <div className="bg-primary p-8 rounded-[2rem] text-primary-foreground shadow-xl">
+                    <h4 className="text-lg font-bold flex items-center gap-2 mb-4">
+                      <Cloud className="w-5 h-5" />
+                      Verify Console Connection
+                    </h4>
+                    <p className="text-sm text-primary-foreground/70 mb-6">
+                      Push a sample system configuration to your Firestore console to verify your authentication and database security rules.
+                    </p>
+                    <Button 
+                      onClick={handlePushSample} 
+                      disabled={syncing || !user}
+                      className="w-full bg-accent hover:bg-accent/90 text-primary font-bold"
+                    >
+                      {syncing ? "Syncing..." : synced ? "Record Pushed!" : "Push Sample Record"}
+                      {synced ? <CheckCircle2 className="w-4 h-4 ml-2" /> : <Send className="w-4 h-4 ml-2" />}
+                    </Button>
+                    {!user && (
+                      <p className="mt-4 text-[10px] text-center opacity-70">
+                        * Please connect to cloud first to push records.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <section className="w-full bg-white/50 py-24">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card className="border-none shadow-none bg-transparent">
-            <CardHeader>
-              <Activity className="w-12 h-12 text-accent mb-4" />
-              <CardTitle className="text-primary">Real-time Dashboard</CardTitle>
-              <CardDescription>Visualize pH, temperature, and nutrient levels in a sleek, responsive interface.</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="border-none shadow-none bg-transparent">
-            <CardHeader>
-              <Waves className="w-12 h-12 text-accent mb-4" />
-              <CardTitle className="text-primary">Water Quality Alerts</CardTitle>
-              <CardDescription>Instant notifications when parameters fall outside your custom defined thresholds.</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card className="border-none shadow-none bg-transparent">
-            <CardHeader>
-              <Leaf className="w-12 h-12 text-accent mb-4" />
-              <CardTitle className="text-primary">Growth Optimization</CardTitle>
-              <CardDescription>Leverage AI to receive tailored recommendations for your specific crop types.</CardDescription>
-            </CardHeader>
-          </Card>
+      <footer className="w-full py-12 bg-white border-t border-muted">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Waves className="w-5 h-5 text-primary" />
+            <span className="font-headline font-bold text-primary">AquaSense</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} AquaSense Hydroponics Monitoring.
+          </p>
+          <div className="flex gap-6">
+            <a href="#" className="text-sm text-muted-foreground hover:text-primary">Privacy</a>
+            <a href="#" className="text-sm text-muted-foreground hover:text-primary">Terms</a>
+            <a href="#" className="text-sm text-muted-foreground hover:text-primary">Support</a>
+          </div>
         </div>
-      </section>
-      
-      <footer className="w-full py-8 text-center text-muted-foreground text-sm border-t border-muted">
-        © {new Date().getFullYear()} AquaSense Hydroponics Monitoring. All rights reserved.
       </footer>
     </div>
   );

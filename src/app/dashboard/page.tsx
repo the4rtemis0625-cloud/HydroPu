@@ -1,18 +1,55 @@
-
 "use client";
 
+import { useState, useEffect } from "react";
 import { SensorCard } from "@/components/dashboard/sensor-card";
 import { HistoricalCharts } from "@/components/dashboard/historical-charts";
 import { AIOptimizer } from "@/components/dashboard/ai-optimizer";
 import { FlaskConical, Thermometer, Waves, Droplets, Activity } from "lucide-react";
+import { useFirebase } from "@/firebase";
+import { ref, onValue } from "firebase/database";
+
+interface SensorData {
+  ph?: number;
+  waterTemp?: number;
+  airTemp?: number;
+  humidity?: number;
+  ec?: number;
+}
 
 export default function DashboardOverview() {
+  const { database } = useFirebase();
+  const [sensors, setSensors] = useState<SensorData>({
+    ph: 6.2,
+    waterTemp: 22.4,
+    airTemp: 24.5,
+    humidity: 64,
+    ec: 1.8,
+  });
+
+  useEffect(() => {
+    if (!database) return;
+
+    // Listen to the 'sensors' path in Realtime Database
+    const sensorsRef = ref(database, 'sensors');
+    const unsubscribe = onValue(sensorsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setSensors(prev => ({
+          ...prev,
+          ...data
+        }));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [database]);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         <SensorCard 
           label="pH Level"
-          value={6.2}
+          value={sensors.ph ?? 0}
           unit="pH"
           icon={<FlaskConical className="w-4 h-4" />}
           min={5.5}
@@ -21,7 +58,7 @@ export default function DashboardOverview() {
         />
         <SensorCard 
           label="Water Temp"
-          value={22.4}
+          value={sensors.waterTemp ?? 0}
           unit="°C"
           icon={<Waves className="w-4 h-4" />}
           min={18}
@@ -30,7 +67,7 @@ export default function DashboardOverview() {
         />
         <SensorCard 
           label="Air Temp"
-          value={24.5}
+          value={sensors.airTemp ?? 0}
           unit="°C"
           icon={<Thermometer className="w-4 h-4" />}
           min={20}
@@ -39,7 +76,7 @@ export default function DashboardOverview() {
         />
         <SensorCard 
           label="Humidity"
-          value={64}
+          value={sensors.humidity ?? 0}
           unit="%"
           icon={<Droplets className="w-4 h-4" />}
           min={50}
@@ -48,7 +85,7 @@ export default function DashboardOverview() {
         />
         <SensorCard 
           label="Nutrient EC"
-          value={1.8}
+          value={sensors.ec ?? 0}
           unit="mS/cm"
           icon={<Activity className="w-4 h-4" />}
           min={1.2}
