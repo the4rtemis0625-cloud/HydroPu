@@ -44,7 +44,6 @@ export default function OnePager() {
   const [synced, setSynced] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   
-  // Initialize with null to clearly distinguish between stale/initial data and live data
   const [sensors, setSensors] = useState<SensorData>({
     ph: 6.2,
     waterTemp: 22.4,
@@ -58,21 +57,20 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to the 'history/latest' path in Realtime Database as specified
+    // Explicitly listen to the 'history/latest' path in Realtime Database
     const sensorsRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Map RTDB data to state using the specific keys provided by the user hub
-        setSensors(prev => ({
-          ...prev,
-          ph: data.ph !== undefined ? data.ph : (data.pH ?? prev.ph),
-          waterTemp: data.temperature !== undefined ? data.temperature : (data.waterTemp ?? data.waterTemperature ?? prev.waterTemp),
-          airTemp: data.temperature !== undefined ? data.temperature : (data.airTemp ?? data.airTemperature ?? prev.airTemp),
-          humidity: data.humidity !== undefined ? data.humidity : prev.humidity,
-          ec: data.tds !== undefined ? data.tds : (data.ec ?? data.ecTds ?? prev.ec),
-        }));
+        // Map RTDB data using reported keys: ph, humidity, tds, temperature
+        setSensors({
+          ph: data.ph !== undefined ? data.ph : 6.2,
+          waterTemp: data.temperature !== undefined ? data.temperature : 22.4,
+          airTemp: data.temperature !== undefined ? data.temperature : 24.5,
+          humidity: data.humidity !== undefined ? data.humidity : 64,
+          ec: data.tds !== undefined ? data.tds : 1.8,
+        });
         setLastUpdated(new Date().toLocaleTimeString());
       }
     });
@@ -351,9 +349,9 @@ export default function OnePager() {
                       {synced ? <CheckCircle2 className="w-4 h-4 ml-2" /> : <Send className="w-4 h-4 ml-2" />}
                     </Button>
                     {!user && (
-                      <p className="mt-4 text-[10px] text-center opacity-70">
+                      <div className="mt-4 text-[10px] text-center opacity-70">
                         * Please connect to cloud first to push records.
-                      </p>
+                      </div>
                     )}
                   </div>
                 </div>
