@@ -22,7 +22,6 @@ import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { doc } from "firebase/firestore";
 import { ref, onValue } from "firebase/database";
-import { SensorCard } from "@/components/dashboard/sensor-card";
 import { HistoricalCharts } from "@/components/dashboard/historical-charts";
 import { AIOptimizer } from "@/components/dashboard/ai-optimizer";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -60,7 +59,7 @@ export default function OnePager() {
     if (!rtdb) return;
 
     // Listen to the specific path: history/latest
-    // Mapping: humidity, ph, tds, temperature
+    // Mapping keys: humidity, ph, tds, temperature
     const sensorsRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
@@ -68,11 +67,11 @@ export default function OnePager() {
       if (data) {
         setIsLive(true);
         setSensors({
-          ph: data.ph !== undefined ? Number(data.ph) : (data.pH !== undefined ? Number(data.pH) : 6.2),
-          waterTemp: data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : 22.4),
-          airTemp: data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : 24.5),
+          ph: data.ph !== undefined ? Number(data.ph) : 6.2,
+          waterTemp: data.temperature !== undefined ? Number(data.temperature) : 22.4,
+          airTemp: data.temperature !== undefined ? Number(data.temperature) : 24.5,
           humidity: data.humidity !== undefined ? Number(data.humidity) : 64,
-          tds: data.tds !== undefined ? Number(data.tds) : (data.ec !== undefined ? Number(data.ec) : 1.8),
+          tds: data.tds !== undefined ? Number(data.tds) : 1.8,
         });
         setLastUpdated(new Date().toLocaleTimeString());
       }
@@ -185,13 +184,13 @@ export default function OnePager() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-headline font-bold text-primary">Live Controller Hub</h2>
+                <h2 className="text-3xl font-headline font-bold text-primary">System Trends</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="text-muted-foreground text-sm">Real-time data from hub sensors</p>
+                  <p className="text-muted-foreground text-sm">Historical analytics and real-time streaming</p>
                   {lastUpdated && (
                     <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">
                       <Clock className="w-3 h-3" />
-                      Updated: {lastUpdated}
+                      Live Update: {lastUpdated}
                     </div>
                   )}
                 </div>
@@ -205,49 +204,6 @@ export default function OnePager() {
                   {isLive ? 'Streaming Live' : 'Waiting for Data'}
                 </span>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-12">
-              <SensorCard 
-                label="pH Level"
-                value={sensors.ph}
-                unit="pH"
-                icon={<FlaskConical className="w-4 h-4" />}
-                min={5.5}
-                max={6.5}
-              />
-              <SensorCard 
-                label="Water Temp"
-                value={sensors.waterTemp}
-                unit="°C"
-                icon={<Waves className="w-4 h-4" />}
-                min={18}
-                max={24}
-              />
-              <SensorCard 
-                label="Air Temp"
-                value={sensors.airTemp}
-                unit="°C"
-                icon={<Thermometer className="w-4 h-4" />}
-                min={20}
-                max={28}
-              />
-              <SensorCard 
-                label="Humidity"
-                value={sensors.humidity}
-                unit="%"
-                icon={<Droplets className="w-4 h-4" />}
-                min={50}
-                max={70}
-              />
-              <SensorCard 
-                label="Nutrient TDS"
-                value={sensors.tds}
-                unit="ppm"
-                icon={<Activity className="w-4 h-4" />}
-                min={1.2}
-                max={2000}
-              />
             </div>
 
             <HistoricalCharts />
@@ -292,7 +248,7 @@ export default function OnePager() {
                 <div className="space-y-6">
                   <h3 className="text-3xl font-headline font-bold text-primary flex items-center gap-3">
                     <Activity className="w-8 h-8 text-accent" />
-                    System Status
+                    Live System Hub
                   </h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -309,6 +265,22 @@ export default function OnePager() {
                         <div className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {user ? 'Authenticated' : 'Not Connected'}
                       </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><FlaskConical className="w-3 h-3" /> pH Level</div>
+                      <div className="font-bold text-primary text-xl">{sensors.ph}</div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Thermometer className="w-3 h-3" /> Temperature</div>
+                      <div className="font-bold text-primary text-xl">{sensors.waterTemp}°C</div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Droplets className="w-3 h-3" /> Humidity</div>
+                      <div className="font-bold text-primary text-xl">{sensors.humidity}%</div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Activity className="w-3 h-3" /> Nutrient TDS</div>
+                      <div className="font-bold text-primary text-xl">{sensors.tds} <span className="text-xs opacity-50">ppm</span></div>
                     </div>
                   </div>
                 </div>
@@ -352,4 +324,3 @@ export default function OnePager() {
     </div>
   );
 }
-
