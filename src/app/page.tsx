@@ -1,13 +1,57 @@
 
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Leaf, Waves, Activity, LogIn } from "lucide-react";
+import { Leaf, Waves, Activity, LogIn, Cloud, Send, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useUser, useFirestore, useAuth } from "@/firebase";
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { doc, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 
 export default function LandingPage() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const db = useFirestore();
+  const [syncing, setSyncing] = useState(false);
+  const [synced, setSynced] = useState(false);
+
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-hydroponics');
+
+  const handleConnect = () => {
+    initiateAnonymousSignIn(auth);
+  };
+
+  const handlePushSample = () => {
+    if (!user || !db) return;
+    setSyncing(true);
+    
+    const sampleId = "sample-system-001";
+    const systemRef = doc(db, "users", user.uid, "hydroponicsSystems", sampleId);
+    
+    setDocumentNonBlocking(systemRef, {
+      id: sampleId,
+      name: "Demo Hydroponics System",
+      description: "Sample system created to verify cloud connection",
+      location: "Virtual Garden",
+      userId: user.uid,
+      cropTypeId: "lettuce-001",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
+    // Simulate feedback
+    setTimeout(() => {
+      setSyncing(false);
+      setSynced(true);
+      setTimeout(() => setSynced(false), 3000);
+    }, 1000);
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center">
@@ -18,12 +62,25 @@ export default function LandingPage() {
           </div>
           <h1 className="text-2xl font-headline font-bold text-primary tracking-tight">AquaSense</h1>
         </div>
-        <Link href="/dashboard">
-          <Button variant="outline" className="gap-2">
-            <LogIn className="w-4 h-4" />
-            Sign In
-          </Button>
-        </Link>
+        <div className="flex items-center gap-4">
+          {!user ? (
+            <Button onClick={handleConnect} disabled={isUserLoading} variant="outline" className="gap-2">
+              <Cloud className="w-4 h-4" />
+              Connect to Cloud
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-xs font-bold text-primary uppercase">Connected</span>
+            </div>
+          )}
+          <Link href="/dashboard">
+            <Button variant="ghost" className="gap-2">
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Button>
+          </Link>
+        </div>
       </header>
 
       <main className="w-full max-w-7xl px-6 flex flex-col lg:flex-row items-center gap-12 py-12 lg:py-24">
@@ -37,29 +94,43 @@ export default function LandingPage() {
               Monitor, optimize, and scale your hydroponic systems with real-time data visualization and AI-powered growth insights.
             </p>
           </div>
+          
+          {user && (
+            <Card className="bg-primary text-primary-foreground border-none shadow-xl max-w-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Cloud className="w-5 h-5" />
+                  Cloud Connection Active
+                </CardTitle>
+                <CardDescription className="text-primary-foreground/70">
+                  Verify your database connection by pushing a sample record.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handlePushSample} 
+                  disabled={syncing}
+                  className="w-full bg-accent hover:bg-accent/90 text-primary font-bold"
+                >
+                  {syncing ? "Syncing..." : synced ? "Synced Successfully!" : "Push Sample Collection"}
+                  {synced ? <CheckCircle2 className="w-4 h-4 ml-2" /> : <Send className="w-4 h-4 ml-2" />}
+                </Button>
+                <p className="mt-2 text-[10px] text-center opacity-60">
+                  This will create a 'users' collection in your Firestore console.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="flex gap-4">
             <Link href="/dashboard">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8">
-                Get Started
+                Go to Dashboard
               </Button>
             </Link>
             <Button size="lg" variant="ghost" className="text-lg">
               Learn More
             </Button>
-          </div>
-          <div className="grid grid-cols-3 gap-8 pt-8 border-t border-muted">
-            <div className="space-y-1">
-              <p className="text-3xl font-bold text-primary">24/7</p>
-              <p className="text-sm text-muted-foreground uppercase tracking-widest">Monitoring</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-3xl font-bold text-primary">AI</p>
-              <p className="text-sm text-muted-foreground uppercase tracking-widest">Optimized</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-3xl font-bold text-primary">100%</p>
-              <p className="text-sm text-muted-foreground uppercase tracking-widest">Real-time</p>
-            </div>
           </div>
         </div>
 
