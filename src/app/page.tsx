@@ -12,7 +12,6 @@ import {
   FlaskConical, 
   Thermometer, 
   Droplets, 
-  Leaf,
   Zap,
   Clock,
   AlertTriangle
@@ -61,7 +60,7 @@ export default function OnePager() {
     if (!rtdb) return;
 
     // Listen to the specific path: history/latest
-    // Expected keys: ph, humidity, tds, temperature
+    // Mapping: humidity, ph, tds, temperature
     const sensorsRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
@@ -353,3 +352,4 @@ export default function OnePager() {
     </div>
   );
 }
+
