@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -57,23 +56,21 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to the 'history/latest' path in Realtime Database as requested
+    // Listen to the 'history/latest' path in Realtime Database
     const sensorsRef = ref(rtdb, 'history/latest');
     
-    // onValue is a real-time listener that triggers every time data changes in your console
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Map RTDB data to state. We handle potential key variations
+        // Map RTDB data to state. Supporting multiple possible key variations from hardware controllers
         setSensors(prev => ({
           ...prev,
           ph: data.ph ?? data.pH ?? prev.ph,
-          waterTemp: data.waterTemp ?? data.waterTemperature ?? prev.waterTemp,
-          airTemp: data.airTemp ?? data.airTemperature ?? prev.airTemp,
+          waterTemp: data.waterTemp ?? data.waterTemperature ?? data.temperature ?? prev.waterTemp,
+          airTemp: data.airTemp ?? data.airTemperature ?? data.temperature ?? prev.airTemp,
           humidity: data.humidity ?? prev.humidity,
-          ec: data.ec ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
+          ec: data.ec ?? data.tds ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
         }));
-        // Update the timestamp so you can see it's live
         setLastUpdated(new Date().toLocaleTimeString());
       }
     });
@@ -208,7 +205,7 @@ export default function OnePager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-12">
               <SensorCard 
                 label="pH Level"
                 value={sensors.ph ?? 0}
@@ -318,7 +315,7 @@ export default function OnePager() {
                       </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Cloud Service</div>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Auth Service</div>
                       <div className="font-bold text-primary flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {user ? 'Authenticated' : 'Offline'}

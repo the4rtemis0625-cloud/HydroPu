@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -30,7 +29,7 @@ export default function DashboardOverview() {
   useEffect(() => {
     if (!database) return;
 
-    // Listen to the 'history/latest' path in Realtime Database as requested
+    // Listen to the 'history/latest' path in Realtime Database
     const sensorsRef = ref(database, 'history/latest');
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
@@ -38,10 +37,10 @@ export default function DashboardOverview() {
         setSensors(prev => ({
           ...prev,
           ph: data.ph ?? data.pH ?? prev.ph,
-          waterTemp: data.waterTemp ?? data.waterTemperature ?? prev.waterTemp,
-          airTemp: data.airTemp ?? data.airTemperature ?? prev.airTemp,
+          waterTemp: data.waterTemp ?? data.waterTemperature ?? data.temperature ?? prev.waterTemp,
+          airTemp: data.airTemp ?? data.airTemperature ?? data.temperature ?? prev.airTemp,
           humidity: data.humidity ?? prev.humidity,
-          ec: data.ec ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
+          ec: data.ec ?? data.tds ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
         }));
       }
     });
