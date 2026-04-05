@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -12,7 +13,8 @@ import {
   Thermometer, 
   Droplets, 
   Leaf,
-  Zap
+  Zap,
+  Clock
 } from "lucide-react";
 import Image from "next/image";
 import { useUser, useFirestore, useAuth, useDatabase } from "@/firebase";
@@ -41,6 +43,7 @@ export default function OnePager() {
   
   const [syncing, setSyncing] = useState(false);
   const [synced, setSynced] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [sensors, setSensors] = useState<SensorData>({
     ph: 6.2,
     waterTemp: 22.4,
@@ -54,16 +57,23 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to the 'history/latest' path in Realtime Database as requested
+    // Listen to the 'history/latest' path in Realtime Database
     const sensorsRef = ref(rtdb, 'history/latest');
+    
+    // onValue is a real-time listener that triggers every time data changes
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Map RTDB data to state. If keys match directly, we merge.
+        // Map RTDB data to state. We handle potential key variations (e.g., pH vs ph)
         setSensors(prev => ({
           ...prev,
-          ...data
+          ph: data.ph ?? data.pH ?? prev.ph,
+          waterTemp: data.waterTemp ?? data.waterTemperature ?? prev.waterTemp,
+          airTemp: data.airTemp ?? data.airTemperature ?? prev.airTemp,
+          humidity: data.humidity ?? prev.humidity,
+          ec: data.ec ?? data.nutrientValue ?? data.ecTds ?? prev.ec,
         }));
+        setLastUpdated(new Date().toLocaleTimeString());
       }
     });
 
@@ -178,7 +188,15 @@ export default function OnePager() {
             <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <h2 className="text-3xl font-headline font-bold text-primary">Live Monitoring</h2>
-                <p className="text-muted-foreground">Real-time telemetry from your controller hub</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-muted-foreground">Real-time telemetry from your controller hub</p>
+                  {lastUpdated && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">
+                      <Clock className="w-3 h-3" />
+                      Updated {lastUpdated}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-full border border-accent/20">
                 <span className="relative flex h-2 w-2">
@@ -300,7 +318,6 @@ export default function OnePager() {
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Cloud Service</p>
-                      {/* FIXED: Using div instead of p to avoid hydration errors from span nesting */}
                       <div className="font-bold text-primary flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {user ? 'Authenticated' : 'Offline'}
@@ -308,7 +325,6 @@ export default function OnePager() {
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Database Sync</p>
-                      {/* FIXED: Using div instead of p to avoid hydration errors from span nesting */}
                       <div className="font-bold text-primary flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                         Realtime
