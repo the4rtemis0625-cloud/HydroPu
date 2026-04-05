@@ -28,8 +28,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface SensorData {
   ph: number;
-  waterTemp: number;
-  airTemp: number;
+  temperature: number;
   humidity: number;
   tds: number;
 }
@@ -47,8 +46,7 @@ export default function OnePager() {
   
   const [sensors, setSensors] = useState<SensorData>({
     ph: 6.2,
-    waterTemp: 22.4,
-    airTemp: 24.5,
+    temperature: 22.4,
     humidity: 64,
     tds: 1.8,
   });
@@ -58,18 +56,17 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to the specific path: history/latest
-    // Mapping keys: humidity, ph, tds, temperature
-    const sensorsRef = ref(rtdb, 'history/latest');
+    // Correct path: history/latest
+    // Mapping: humidity, ph, tds, temperature
+    const latestRef = ref(rtdb, 'history/latest');
     
-    const unsubscribe = onValue(sensorsRef, (snapshot) => {
+    const unsubscribe = onValue(latestRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setIsLive(true);
         setSensors({
           ph: data.ph !== undefined ? Number(data.ph) : 6.2,
-          waterTemp: data.temperature !== undefined ? Number(data.temperature) : 22.4,
-          airTemp: data.temperature !== undefined ? Number(data.temperature) : 24.5,
+          temperature: data.temperature !== undefined ? Number(data.temperature) : 22.4,
           humidity: data.humidity !== undefined ? Number(data.humidity) : 64,
           tds: data.tds !== undefined ? Number(data.tds) : 1.8,
         });
@@ -150,17 +147,17 @@ export default function OnePager() {
           <div className="space-y-8">
             <div className="space-y-4">
               <h2 className="text-5xl lg:text-7xl font-headline font-extrabold text-primary leading-tight">
-                Precision Hydroponics <br />
-                <span className="text-accent">Simplified.</span>
+                Live Monitoring <br />
+                <span className="text-accent">Real-Time Growth.</span>
               </h2>
               <p className="text-xl text-muted-foreground max-w-xl">
-                Monitor, optimize, and scale your hydroponic systems with real-time data from your sensor hub.
+                Displaying the latest data from your sensor hub at <code className="bg-muted px-1 rounded">history/latest</code>.
               </p>
             </div>
             
             <div className="flex gap-4">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8" asChild>
-                <a href="#monitor">View Live Data</a>
+                <a href="#monitor">View System Trends</a>
               </Button>
             </div>
           </div>
@@ -254,6 +251,7 @@ export default function OnePager() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Hub Connection</div>
+                      {/* FIXED HYDRATION: Used div instead of p to allow nested block elements */}
                       <div className="font-bold text-primary flex items-center gap-2 text-sm">
                         <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-accent' : 'bg-muted-foreground'}`} />
                         {isLive ? 'Live Stream Active' : 'Offline'}
@@ -272,7 +270,7 @@ export default function OnePager() {
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Thermometer className="w-3 h-3" /> Temperature</div>
-                      <div className="font-bold text-primary text-xl">{sensors.waterTemp}°C</div>
+                      <div className="font-bold text-primary text-xl">{sensors.temperature}°C</div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Droplets className="w-3 h-3" /> Humidity</div>
