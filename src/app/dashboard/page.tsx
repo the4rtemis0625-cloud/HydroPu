@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,7 +6,7 @@ import { SensorCard } from "@/components/dashboard/sensor-card";
 import { HistoricalCharts } from "@/components/dashboard/historical-charts";
 import { AIOptimizer } from "@/components/dashboard/ai-optimizer";
 import { FlaskConical, Thermometer, Waves, Droplets, Activity } from "lucide-react";
-import { useFirebase } from "@/firebase";
+import { useDatabase } from "@/firebase";
 import { ref, onValue } from "firebase/database";
 
 interface SensorData {
@@ -13,17 +14,17 @@ interface SensorData {
   waterTemp?: number;
   airTemp?: number;
   humidity?: number;
-  ec?: number;
+  tds?: number;
 }
 
 export default function DashboardOverview() {
-  const { database } = useFirebase();
+  const database = useDatabase();
   const [sensors, setSensors] = useState<SensorData>({
     ph: 6.2,
     waterTemp: 22.4,
     airTemp: 24.5,
     humidity: 64,
-    ec: 1.8,
+    tds: 1.8,
   });
 
   useEffect(() => {
@@ -34,14 +35,14 @@ export default function DashboardOverview() {
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Map RTDB data to state using robust checks for hardware specific keys
+        // Map RTDB data robustly to handle ph/pH, temperature/temp, and tds/ec variants
         setSensors(prev => ({
           ...prev,
-          ph: data.ph !== undefined ? data.ph : (data.pH ?? prev.ph),
-          waterTemp: data.temperature !== undefined ? data.temperature : (data.waterTemp ?? data.waterTemperature ?? prev.waterTemp),
-          airTemp: data.temperature !== undefined ? data.temperature : (data.airTemp ?? data.airTemperature ?? prev.airTemp),
-          humidity: data.humidity !== undefined ? data.humidity : prev.humidity,
-          ec: data.tds !== undefined ? data.tds : (data.ec ?? data.ecTds ?? prev.ec),
+          ph: data.ph !== undefined ? Number(data.ph) : (data.pH !== undefined ? Number(data.pH) : prev.ph),
+          waterTemp: data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : prev.waterTemp),
+          airTemp: data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : prev.airTemp),
+          humidity: data.humidity !== undefined ? Number(data.humidity) : prev.humidity,
+          tds: data.tds !== undefined ? Number(data.tds) : (data.ec !== undefined ? Number(data.ec) : prev.tds),
         }));
       }
     });
@@ -89,12 +90,12 @@ export default function DashboardOverview() {
           trend="stable"
         />
         <SensorCard 
-          label="Nutrient EC"
-          value={sensors.ec ?? 0}
-          unit="mS/cm"
+          label="Nutrient TDS"
+          value={sensors.tds ?? 0}
+          unit="ppm"
           icon={<Activity className="w-4 h-4" />}
           min={1.2}
-          max={2.5}
+          max={2000}
           trend="up"
         />
       </div>
@@ -138,8 +139,8 @@ export default function DashboardOverview() {
             <div className="flex items-start gap-3 p-2 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer">
               <div className="w-2 h-2 rounded-full bg-destructive mt-1.5 shrink-0" />
               <div>
-                <p className="text-sm font-semibold">pH High Drift</p>
-                <p className="text-xs text-muted-foreground">Reached 6.8 at 14:32 PM. System auto-adjusted acid pump.</p>
+                <p className="text-sm font-semibold">pH Level Warning</p>
+                <p className="text-xs text-muted-foreground">Abnormal pH readings detected in system.</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-2 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer">

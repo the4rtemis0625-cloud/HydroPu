@@ -33,7 +33,7 @@ interface SensorData {
   waterTemp: number;
   airTemp: number;
   humidity: number;
-  ec: number;
+  tds: number;
 }
 
 export default function OnePager() {
@@ -52,7 +52,7 @@ export default function OnePager() {
     waterTemp: 22.4,
     airTemp: 24.5,
     humidity: 64,
-    ec: 1.8,
+    tds: 1.8,
   });
 
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-hydroponics');
@@ -61,19 +61,19 @@ export default function OnePager() {
     if (!rtdb) return;
 
     // Listen to the specific path: history/latest
+    // Expected keys: ph, humidity, tds, temperature
     const sensorsRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(sensorsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setIsLive(true);
-        // Map RTDB data using keys: ph, humidity, tds, temperature
         setSensors({
-          ph: data.ph !== undefined ? Number(data.ph) : 6.2,
-          waterTemp: data.temperature !== undefined ? Number(data.temperature) : 22.4,
-          airTemp: data.temperature !== undefined ? Number(data.temperature) : 24.5,
+          ph: data.ph !== undefined ? Number(data.ph) : (data.pH !== undefined ? Number(data.pH) : 6.2),
+          waterTemp: data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : 22.4),
+          airTemp: data.temperature !== undefined ? Number(data.temperature) : (data.temp !== undefined ? Number(data.temp) : 24.5),
           humidity: data.humidity !== undefined ? Number(data.humidity) : 64,
-          ec: data.tds !== undefined ? Number(data.tds) : 1.8,
+          tds: data.tds !== undefined ? Number(data.tds) : (data.ec !== undefined ? Number(data.ec) : 1.8),
         });
         setLastUpdated(new Date().toLocaleTimeString());
       }
@@ -188,11 +188,11 @@ export default function OnePager() {
               <div>
                 <h2 className="text-3xl font-headline font-bold text-primary">Live Controller Hub</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="text-muted-foreground">Real-time data from Realtime Database (history/latest)</p>
+                  <p className="text-muted-foreground text-sm">Real-time data from hub sensors</p>
                   {lastUpdated && (
                     <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">
                       <Clock className="w-3 h-3" />
-                      Last Sync: {lastUpdated}
+                      Updated: {lastUpdated}
                     </div>
                   )}
                 </div>
@@ -243,7 +243,7 @@ export default function OnePager() {
               />
               <SensorCard 
                 label="Nutrient TDS"
-                value={sensors.ec}
+                value={sensors.tds}
                 unit="ppm"
                 icon={<Activity className="w-4 h-4" />}
                 min={1.2}
@@ -299,14 +299,14 @@ export default function OnePager() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Hub Connection</div>
-                      <div className="font-bold text-primary flex items-center gap-2">
+                      <div className="font-bold text-primary flex items-center gap-2 text-sm">
                         <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-accent' : 'bg-muted-foreground'}`} />
                         {isLive ? 'Live Stream Active' : 'Offline'}
                       </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
                       <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Auth Status</div>
-                      <div className="font-bold text-primary flex items-center gap-2">
+                      <div className="font-bold text-primary flex items-center gap-2 text-sm">
                         <div className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {user ? 'Authenticated' : 'Not Connected'}
                       </div>
