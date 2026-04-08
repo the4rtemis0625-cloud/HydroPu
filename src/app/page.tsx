@@ -57,7 +57,7 @@ export default function OnePager() {
     if (!rtdb) return;
 
     // Correct path: history/latest
-    // Mapping: humidity, ph, tds, temperature
+    // Mapping: humidity, ph, tds, temperature based on user data hub
     const latestRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(latestRef, (snapshot) => {
@@ -276,10 +276,7 @@ export default function OnePager() {
                       <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Droplets className="w-3 h-3" /> Humidity</div>
                       <div className="font-bold text-primary text-xl">{sensors.humidity}%</div>
                     </div>
-                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Activity className="w-3 h-3" /> Nutrient TDS</div>
-                      <div className="font-bold text-primary text-xl">{sensors.tds} <span className="text-xs opacity-50">ppm</span></div>
-                    </div>
+                    {/* Nutrient TDS card removed per user request */}
                   </div>
                 </div>
 
@@ -322,3 +319,4 @@ export default function OnePager() {
     </div>
   );
 }
+
