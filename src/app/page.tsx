@@ -15,13 +15,11 @@ import {
   Database,
   Cpu
 } from "lucide-react";
-import Image from "next/image";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { ref, onValue } from "firebase/database";
 import { HistoricalCharts } from "@/components/dashboard/historical-charts";
 import { AIOptimizer } from "@/components/dashboard/ai-optimizer";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface SensorData {
   ph: number;
@@ -45,8 +43,6 @@ export default function OnePager() {
     tds: 0,
   });
 
-  const heroImage = PlaceHolderImages.find(img => img.id === 'hero-hydroponics');
-
   useEffect(() => {
     if (!rtdb) return;
 
@@ -57,7 +53,7 @@ export default function OnePager() {
       const data = snapshot.val();
       if (data) {
         setIsLive(true);
-        // Robust mapping for reported keys: humidity, ph, tds, temperature
+        // Explicitly mapping keys: ph, humidity, tds, temperature
         setSensors({
           ph: data.ph !== undefined ? Number(data.ph) : 6.2,
           temperature: data.temperature !== undefined ? Number(data.temperature) : 22.4,
@@ -111,38 +107,25 @@ export default function OnePager() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative w-full max-w-7xl mx-auto px-6 pt-12 pb-24 grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
+        <section className="relative w-full max-w-7xl mx-auto px-6 pt-24 pb-32 flex flex-col items-center text-center">
+          <div className="space-y-8 max-w-3xl">
             <div className="space-y-4">
-              <h2 className="text-5xl lg:text-7xl font-headline font-extrabold text-primary leading-tight">
+              <h2 className="text-6xl lg:text-8xl font-headline font-extrabold text-primary leading-tight">
                 Live Sensor <br />
                 <span className="text-accent">Intelligence.</span>
               </h2>
             </div>
             
-            <div className="flex gap-4">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8" asChild>
+            <div className="flex justify-center gap-4">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-10 h-14 rounded-2xl shadow-xl shadow-primary/20" asChild>
                 <a href="#monitor">View Live Trends</a>
               </Button>
             </div>
           </div>
-
-          <div className="relative h-[400px] lg:h-[500px] rounded-3xl overflow-hidden shadow-2xl border-8 border-white">
-            {heroImage && (
-              <Image
-                src={heroImage.imageUrl}
-                alt={heroImage.description}
-                fill
-                className="object-cover"
-                data-ai-hint={heroImage.imageHint}
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent" />
-          </div>
         </section>
 
         {/* Monitoring Section */}
-        <section id="monitor" className="py-24 bg-muted/30">
+        <section id="monitor" className="py-24 bg-muted/30 border-y border-muted/50">
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
@@ -150,7 +133,7 @@ export default function OnePager() {
                 <div className="flex items-center gap-2 mt-1">
                   <div className="text-muted-foreground text-sm">Visualizing data stream from your sensor hub</div>
                   {lastUpdated && (
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
                       <Clock className="w-3 h-3" />
                       Updated: {lastUpdated}
                     </div>
@@ -187,11 +170,11 @@ export default function OnePager() {
                 Analyzing your current sensor values against optimal growth curves.
               </div>
               {sensors.ph < 4.0 && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                   <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-destructive">Low pH Detected</h4>
-                    <div className="text-sm text-destructive/80">Current pH: {sensors.ph}. Please adjust your nutrient solution.</div>
+                    <h4 className="font-bold text-destructive">Critical pH Alert</h4>
+                    <div className="text-sm text-destructive/80">Current pH: {sensors.ph}. The water is highly acidic. Please adjust immediately.</div>
                   </div>
                 </div>
               )}
