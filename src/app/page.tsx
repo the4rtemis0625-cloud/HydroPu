@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -13,7 +12,9 @@ import {
   Cpu,
   Power,
   RotateCcw,
-  Activity
+  Activity,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -26,6 +27,12 @@ interface SensorData {
   tds: number;
 }
 
+interface PumpStates {
+  pump1: boolean;
+  pump2: boolean;
+  pump3: boolean;
+}
+
 export default function OnePager() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
@@ -33,9 +40,15 @@ export default function OnePager() {
   
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [isPumpOn, setIsPumpOn] = useState(false);
   
-  // Initialize with null to ensure hydration matches server (server renders null/loading state)
+  // Individual pump states
+  const [pumps, setPumps] = useState<PumpStates>({
+    pump1: false,
+    pump2: false,
+    pump3: false
+  });
+  
+  // Initialize with null to ensure hydration matches server
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
   useEffect(() => {
@@ -47,7 +60,6 @@ export default function OnePager() {
       const data = snapshot.val();
       if (data) {
         setIsLive(true);
-        // Map the specific keys provided: humidity, ph, tds, temperature
         setSensors({
           ph: data.ph !== undefined ? Number(data.ph) : 0,
           temperature: data.temperature !== undefined ? Number(data.temperature) : 0,
@@ -58,16 +70,27 @@ export default function OnePager() {
       }
     });
 
-    // Listen to pump status settings
-    const pumpRef = ref(rtdb, 'settings/pumpStatus');
-    const unsubscribePump = onValue(pumpRef, (snapshot) => {
-      const status = snapshot.val();
-      setIsPumpOn(status === 'on');
+    // Listen to individual pump statuses
+    const pump1Ref = ref(rtdb, 'settings/pump1Status');
+    const unsubscribePump1 = onValue(pump1Ref, (snapshot) => {
+      setPumps(prev => ({ ...prev, pump1: snapshot.val() === 'on' }));
+    });
+
+    const pump2Ref = ref(rtdb, 'settings/pump2Status');
+    const unsubscribePump2 = onValue(pump2Ref, (snapshot) => {
+      setPumps(prev => ({ ...prev, pump2: snapshot.val() === 'on' }));
+    });
+
+    const pump3Ref = ref(rtdb, 'settings/pump3Status');
+    const unsubscribePump3 = onValue(pump3Ref, (snapshot) => {
+      setPumps(prev => ({ ...prev, pump3: snapshot.val() === 'on' }));
     });
 
     return () => {
       unsubscribeSensors();
-      unsubscribePump();
+      unsubscribePump1();
+      unsubscribePump2();
+      unsubscribePump3();
     };
   }, [rtdb]);
 
@@ -77,12 +100,22 @@ export default function OnePager() {
     }
   };
 
-  const handleTogglePump = () => {
+  const togglePump = (pumpId: 1 | 2 | 3) => {
     if (!rtdb) return;
-    const pumpRef = ref(rtdb, 'settings/pumpStatus');
-    const nextStatus = isPumpOn ? 'off' : 'on';
+    const pumpKey = `pump${pumpId}` as keyof PumpStates;
+    const pumpRef = ref(rtdb, `settings/pump${pumpId}Status`);
+    const nextStatus = pumps[pumpKey] ? 'off' : 'on';
     set(pumpRef, nextStatus);
   };
+
+  const toggleAllPumps = (targetStatus: 'on' | 'off') => {
+    if (!rtdb) return;
+    set(ref(rtdb, 'settings/pump1Status'), targetStatus);
+    set(ref(rtdb, 'settings/pump2Status'), targetStatus);
+    set(ref(rtdb, 'settings/pump3Status'), targetStatus);
+  };
+
+  const allPumpsOn = pumps.pump1 && pumps.pump2 && pumps.pump3;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-body">
@@ -98,7 +131,7 @@ export default function OnePager() {
           
           <nav className="hidden md:flex items-center gap-8">
             <a href="#hub" className="text-sm font-medium hover:text-primary transition-colors">Sensor Hub</a>
-            <a href="#simulation" className="text-sm font-medium hover:text-primary transition-colors">Simulation</a>
+            <a href="#controls" className="text-sm font-medium hover:text-primary transition-colors">Pump Controls</a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -200,12 +233,12 @@ export default function OnePager() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                  <div className="p-6 bg-muted/20 rounded-3xl border border-muted shadow-sm">
+                  <div className="p-6 bg-muted/20 rounded-3xl border border-muted shadow-sm flex flex-col justify-center">
                     <h3 className="font-headline font-bold text-primary mb-4 flex items-center gap-2 text-sm">
                       <Activity className="w-5 h-5 text-accent" />
                       Health Metrics
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground">System Status</span>
                         <div className="flex items-center gap-2 font-bold text-primary">
@@ -221,22 +254,60 @@ export default function OnePager() {
                   </div>
                   
                   {/* Simulation Hub */}
-                  <div id="simulation" className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-4">
-                    <div className="flex items-center justify-between">
+                  <div id="controls" className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-6">
+                    <div className="flex items-center justify-between border-b border-primary/10 pb-4">
                       <h3 className="font-headline font-bold text-primary flex items-center gap-2 text-sm">
                         <RotateCcw className="w-5 h-5 text-accent" />
-                        Pump Controller
+                        Pump Controller Hub
                       </h3>
-                      <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest border ${isPumpOn ? 'bg-accent/10 border-accent/20 text-accent' : 'bg-muted border-muted-foreground/20 text-muted-foreground'}`}>
-                        {isPumpOn ? 'Active' : 'Idle'}
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => toggleAllPumps('on')}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] font-bold uppercase tracking-widest border-accent text-accent hover:bg-accent/10"
+                        >
+                          All ON
+                        </Button>
+                        <Button 
+                          onClick={() => toggleAllPumps('off')}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] font-bold uppercase tracking-widest border-destructive text-destructive hover:bg-destructive/10"
+                        >
+                          All OFF
+                        </Button>
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {[1, 2, 3].map((num) => {
+                        const id = num as 1 | 2 | 3;
+                        const isOn = pumps[`pump${id}` as keyof PumpStates];
+                        return (
+                          <div key={id} className="space-y-2">
+                            <div className="flex items-center justify-between px-1">
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase">Pump {id}</span>
+                              <div className={`w-1.5 h-1.5 rounded-full ${isOn ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
+                            </div>
+                            <Button 
+                              onClick={() => togglePump(id)}
+                              className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${isOn ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}
+                            >
+                              <Power className="w-3 h-3 mr-2" />
+                              {isOn ? 'ON' : 'OFF'}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
                     <Button 
-                      onClick={handleTogglePump}
-                      className={`w-full h-12 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 ${isPumpOn ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-accent hover:bg-accent/90 text-primary'}`}
+                      onClick={() => toggleAllPumps(allPumpsOn ? 'off' : 'on')}
+                      className={`w-full h-12 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${allPumpsOn ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
                     >
-                      <Power className="w-3 h-3 mr-2" />
-                      {isPumpOn ? 'Turn Pump OFF' : 'Turn Pump ON'}
+                      {allPumpsOn ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                      {allPumpsOn ? 'Master Kill Switch (OFF)' : 'Activate Full System (ON)'}
                     </Button>
                   </div>
                 </div>
