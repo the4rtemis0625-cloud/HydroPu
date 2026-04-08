@@ -9,7 +9,6 @@ import {
   Thermometer, 
   Droplets, 
   Zap,
-  Clock,
   Database,
   Cpu,
   Power,
@@ -42,8 +41,8 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to real-time sensor data at history/latest
-    const latestRef = ref(rtdb, 'history/latest');
+    // Listen to real-time sensor data at the 'latest' path
+    const latestRef = ref(rtdb, 'latest');
     const unsubscribeSensors = onValue(latestRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -73,7 +72,9 @@ export default function OnePager() {
   }, [rtdb]);
 
   const handleConnect = () => {
-    initiateAnonymousSignIn(auth);
+    if (auth) {
+      initiateAnonymousSignIn(auth);
+    }
   };
 
   const handleTogglePump = () => {
@@ -125,8 +126,7 @@ export default function OnePager() {
               Live Sensor Protocol
             </div>
             <h2 className="text-5xl lg:text-6xl font-headline font-extrabold text-primary leading-tight">
-              Real-Time <br />
-              <span className="text-accent underline decoration-primary/10">Hydroponic Monitoring</span>
+              Real-Time Monitoring
             </h2>
           </div>
         </section>
@@ -146,21 +146,21 @@ export default function OnePager() {
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-accent animate-pulse' : 'bg-muted-foreground'}`} />
-                      <span className="text-muted-foreground text-sm">
-                        {isLive ? `Receiving telemetry (Last: ${lastUpdated})` : 'Awaiting sensor hub broadcast...'}
-                      </span>
+                      <div className="text-muted-foreground text-sm">
+                        {isLive ? `Receiving telemetry (Last Update: ${lastUpdated})` : 'Awaiting sensor hub broadcast...'}
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   {/* pH Balance Card */}
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <FlaskConical className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> pH Balance
+                      <FlaskConical className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> pH Level
                     </div>
                     <div className="font-bold text-primary text-5xl tracking-tighter">
-                      {sensors ? sensors.ph : '---'}
+                      {sensors ? sensors.ph.toFixed(2) : '---'}
                     </div>
                     <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 5.5 — 6.5</div>
                   </div>
@@ -171,7 +171,7 @@ export default function OnePager() {
                       <Thermometer className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" /> Temperature
                     </div>
                     <div className="font-bold text-primary text-5xl tracking-tighter">
-                      {sensors ? `${sensors.temperature}°C` : '---'}
+                      {sensors ? `${sensors.temperature.toFixed(1)}°C` : '---'}
                     </div>
                     <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 18 — 24°C</div>
                   </div>
@@ -182,9 +182,20 @@ export default function OnePager() {
                       <Droplets className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" /> Humidity
                     </div>
                     <div className="font-bold text-primary text-5xl tracking-tighter">
-                      {sensors ? `${sensors.humidity}%` : '---'}
+                      {sensors ? `${sensors.humidity.toFixed(1)}%` : '---'}
                     </div>
                     <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 50 — 70%</div>
+                  </div>
+
+                  {/* TDS Card */}
+                  <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> TDS Level
+                    </div>
+                    <div className="font-bold text-primary text-5xl tracking-tighter">
+                      {sensors ? sensors.tds : '---'}
+                    </div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 0 — 2000 ppm</div>
                   </div>
                 </div>
 
@@ -196,8 +207,11 @@ export default function OnePager() {
                     </h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground">TDS/Nutrients</span>
-                        <span className="font-bold text-primary">{sensors ? `${sensors.tds} ppm` : '---'}</span>
+                        <span className="text-muted-foreground">System Status</span>
+                        <div className="flex items-center gap-2 font-bold text-primary">
+                          <div className={`w-2 h-2 rounded-full ${sensors ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
+                          {sensors ? 'Operational' : 'Idle'}
+                        </div>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground">Gateway Protocol</span>
