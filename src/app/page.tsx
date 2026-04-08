@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -268,14 +269,6 @@ export default function OnePager() {
                           className="h-7 text-[10px] font-bold uppercase tracking-widest border-accent text-accent hover:bg-accent/10"
                         >
                           All ON
-                        </Button>
-                        <Button 
-                          onClick={() => toggleAllPumps('off')}
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-[10px] font-bold uppercase tracking-widest border-destructive text-destructive hover:bg-destructive/10"
-                        >
-                          All OFF
                         </Button>
                       </div>
                     </div>
