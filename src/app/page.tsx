@@ -14,7 +14,8 @@ import {
   Droplets, 
   Zap,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Database
 } from "lucide-react";
 import Image from "next/image";
 import { useUser, useFirestore, useAuth, useDatabase } from "@/firebase";
@@ -56,14 +57,14 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Correct path: history/latest
-    // Mapping: humidity, ph, tds, temperature based on user data hub
+    // Correct path: history/latest based on user feedback
     const latestRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(latestRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setIsLive(true);
+        // Map keys: humidity: 43, ph: 2.56, tds: 0, temperature: 30.9
         setSensors({
           ph: data.ph !== undefined ? Number(data.ph) : 6.2,
           temperature: data.temperature !== undefined ? Number(data.temperature) : 22.4,
@@ -81,18 +82,20 @@ export default function OnePager() {
     initiateAnonymousSignIn(auth);
   };
 
-  const handlePushSample = () => {
+  const handleSimulateFirestorePush = () => {
     if (!user || !db) return;
     setSyncing(true);
     
-    const sampleId = "sample-system-" + Date.now();
-    const systemRef = doc(db, "users", user.uid, "hydroponicsSystems", sampleId);
+    const systemId = "sys-001";
+    const readingId = "reading-" + Date.now();
     
+    // 1. Create/Update System Document
+    const systemRef = doc(db, "users", user.uid, "hydroponicsSystems", systemId);
     setDocumentNonBlocking(systemRef, {
-      id: sampleId,
-      name: "Demo Hydroponics System",
-      description: "Sample system created to verify cloud connection",
-      location: "Virtual Garden",
+      id: systemId,
+      name: "Main Grow System",
+      description: "Live monitoring system for hydroponics",
+      location: "Grow Tent A",
       userId: user.uid,
       cropTypeId: "lettuce-001",
       isActive: true,
@@ -100,11 +103,24 @@ export default function OnePager() {
       updatedAt: new Date().toISOString(),
     }, { merge: true });
 
+    // 2. Create Nested Sensor Reading Document
+    const readingRef = doc(db, "users", user.uid, "hydroponicsSystems", systemId, "sensorReadings", readingId);
+    setDocumentNonBlocking(readingRef, {
+      id: readingId,
+      systemId: systemId,
+      timestamp: new Date().toISOString(),
+      pHValue: sensors.ph,
+      waterTemperature: sensors.temperature,
+      airTemperature: sensors.temperature + 2, // simulated ambient diff
+      humidity: sensors.humidity,
+      nutrientValue: sensors.tds,
+    }, { merge: true });
+
     setTimeout(() => {
       setSyncing(false);
       setSynced(true);
       setTimeout(() => setSynced(false), 3000);
-    }, 1000);
+    }, 1200);
   };
 
   return (
@@ -122,7 +138,7 @@ export default function OnePager() {
           <nav className="hidden md:flex items-center gap-8">
             <a href="#monitor" className="text-sm font-medium hover:text-primary transition-colors">Monitoring</a>
             <a href="#insights" className="text-sm font-medium hover:text-primary transition-colors">AI Insights</a>
-            <a href="#system" className="text-sm font-medium hover:text-primary transition-colors">System Hub</a>
+            <a href="#system" className="text-sm font-medium hover:text-primary transition-colors">Simulation Hub</a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -235,7 +251,7 @@ export default function OnePager() {
           </div>
         </section>
 
-        {/* System Health Hub */}
+        {/* Simulation Hub */}
         <section id="system" className="py-24 bg-white/50 border-t border-muted">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-12 bg-background rounded-[2.5rem] border border-muted shadow-2xl overflow-hidden relative">
@@ -244,57 +260,55 @@ export default function OnePager() {
               <div className="relative z-10 grid md:grid-cols-2 gap-12">
                 <div className="space-y-6">
                   <h3 className="text-3xl font-headline font-bold text-primary flex items-center gap-3">
-                    <Activity className="w-8 h-8 text-accent" />
-                    Live System Hub
+                    <Database className="w-8 h-8 text-accent" />
+                    Simulation Hub
                   </h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Hub Connection</div>
-                      {/* FIXED HYDRATION: Used div instead of p to allow nested block elements */}
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 font-headline">RTDB Status</div>
                       <div className="font-bold text-primary flex items-center gap-2 text-sm">
                         <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-accent' : 'bg-muted-foreground'}`} />
                         {isLive ? 'Live Stream Active' : 'Offline'}
                       </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1">Auth Status</div>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 font-headline">Auth Status</div>
                       <div className="font-bold text-primary flex items-center gap-2 text-sm">
                         <div className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {user ? 'Authenticated' : 'Not Connected'}
                       </div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><FlaskConical className="w-3 h-3" /> pH Level</div>
-                      <div className="font-bold text-primary text-xl">{sensors.ph}</div>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1 font-headline"><FlaskConical className="w-3 h-3" /> pH Level</div>
+                      <div className="font-bold text-primary text-xl tracking-tight">{sensors.ph}</div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Thermometer className="w-3 h-3" /> Temperature</div>
-                      <div className="font-bold text-primary text-xl">{sensors.temperature}°C</div>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1 font-headline"><Thermometer className="w-3 h-3" /> Temperature</div>
+                      <div className="font-bold text-primary text-xl tracking-tight">{sensors.temperature}°C</div>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1"><Droplets className="w-3 h-3" /> Humidity</div>
-                      <div className="font-bold text-primary text-xl">{sensors.humidity}%</div>
+                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1 font-headline"><Droplets className="w-3 h-3" /> Humidity</div>
+                      <div className="font-bold text-primary text-xl tracking-tight">{sensors.humidity}%</div>
                     </div>
-                    {/* Nutrient TDS card removed per user request */}
                   </div>
                 </div>
 
                 <div className="flex flex-col justify-center gap-6">
                   <div className="bg-primary p-8 rounded-[2rem] text-primary-foreground shadow-xl">
-                    <h4 className="text-lg font-bold flex items-center gap-2 mb-4">
-                      <Cloud className="w-5 l-5" />
-                      Firestore Console Sync
+                    <h4 className="text-lg font-bold flex items-center gap-2 mb-4 font-headline">
+                      <Send className="w-5 h-5" />
+                      Firestore Simulation
                     </h4>
-                    <p className="text-sm text-primary-foreground/70 mb-6">
-                      Verify your connection by pushing a sample system configuration to your Firestore database.
+                    <p className="text-sm text-primary-foreground/70 mb-6 leading-relaxed">
+                      Push the current sensor values to Firestore to test your collection structure and security rules.
                     </p>
                     <Button 
-                      onClick={handlePushSample} 
+                      onClick={handleSimulateFirestorePush} 
                       disabled={syncing || !user}
-                      className="w-full bg-accent hover:bg-accent/90 text-primary font-bold"
+                      className="w-full bg-accent hover:bg-accent/90 text-primary font-bold shadow-lg shadow-accent/20"
                     >
-                      {syncing ? "Syncing..." : synced ? "Record Pushed!" : "Push Sample Record"}
+                      {syncing ? "Simulating..." : synced ? "Record Pushed!" : "Trigger Collection Simulation"}
                       {synced ? <CheckCircle2 className="w-4 h-4 ml-2" /> : <Send className="w-4 h-4 ml-2" />}
                     </Button>
                   </div>
@@ -311,7 +325,7 @@ export default function OnePager() {
             <Waves className="w-5 h-5 text-primary" />
             <span className="font-headline font-bold text-primary">AquaSense</span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground font-medium">
             © {new Date().getFullYear()} AquaSense Hydroponics Monitoring.
           </p>
         </div>
@@ -319,4 +333,3 @@ export default function OnePager() {
     </div>
   );
 }
-
