@@ -261,16 +261,6 @@ export default function OnePager() {
                         <RotateCcw className="w-5 h-5 text-accent" />
                         Pump Controller Hub
                       </h3>
-                      <div className="flex gap-2">
-                        <Button 
-                          onClick={() => toggleAllPumps('on')}
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-[10px] font-bold uppercase tracking-widest border-accent text-accent hover:bg-accent/10"
-                        >
-                          All ON
-                        </Button>
-                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
