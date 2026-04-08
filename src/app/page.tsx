@@ -7,21 +7,17 @@ import {
   Waves, 
   Activity, 
   Cloud, 
-  Send, 
-  CheckCircle2, 
   FlaskConical, 
   Thermometer, 
   Droplets, 
   Zap,
   Clock,
-  AlertTriangle,
-  Database
+  Database,
+  Cpu
 } from "lucide-react";
 import Image from "next/image";
-import { useUser, useFirestore, useAuth, useDatabase } from "@/firebase";
+import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { doc } from "firebase/firestore";
 import { ref, onValue } from "firebase/database";
 import { HistoricalCharts } from "@/components/dashboard/historical-charts";
 import { AIOptimizer } from "@/components/dashboard/ai-optimizer";
@@ -37,11 +33,8 @@ interface SensorData {
 export default function OnePager() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const db = useFirestore();
   const rtdb = useDatabase();
   
-  const [syncing, setSyncing] = useState(false);
-  const [synced, setSynced] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
   
@@ -57,19 +50,19 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Correct path: history/latest based on user feedback
+    // Monitoring the history/latest path as requested
     const latestRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(latestRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setIsLive(true);
-        // Map keys: humidity: 43, ph: 2.56, tds: 0, temperature: 30.9
+        // Mapping exactly to the keys reported: humidity, ph, tds, temperature
         setSensors({
           ph: data.ph !== undefined ? Number(data.ph) : 6.2,
           temperature: data.temperature !== undefined ? Number(data.temperature) : 22.4,
           humidity: data.humidity !== undefined ? Number(data.humidity) : 64,
-          tds: data.tds !== undefined ? Number(data.tds) : 1.8,
+          tds: data.tds !== undefined ? Number(data.tds) : 0,
         });
         setLastUpdated(new Date().toLocaleTimeString());
       }
@@ -80,47 +73,6 @@ export default function OnePager() {
 
   const handleConnect = () => {
     initiateAnonymousSignIn(auth);
-  };
-
-  const handleSimulateFirestorePush = () => {
-    if (!user || !db) return;
-    setSyncing(true);
-    
-    const systemId = "sys-001";
-    const readingId = "reading-" + Date.now();
-    
-    // 1. Create/Update System Document
-    const systemRef = doc(db, "users", user.uid, "hydroponicsSystems", systemId);
-    setDocumentNonBlocking(systemRef, {
-      id: systemId,
-      name: "Main Grow System",
-      description: "Live monitoring system for hydroponics",
-      location: "Grow Tent A",
-      userId: user.uid,
-      cropTypeId: "lettuce-001",
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }, { merge: true });
-
-    // 2. Create Nested Sensor Reading Document
-    const readingRef = doc(db, "users", user.uid, "hydroponicsSystems", systemId, "sensorReadings", readingId);
-    setDocumentNonBlocking(readingRef, {
-      id: readingId,
-      systemId: systemId,
-      timestamp: new Date().toISOString(),
-      pHValue: sensors.ph,
-      waterTemperature: sensors.temperature,
-      airTemperature: sensors.temperature + 2, // simulated ambient diff
-      humidity: sensors.humidity,
-      nutrientValue: sensors.tds,
-    }, { merge: true });
-
-    setTimeout(() => {
-      setSyncing(false);
-      setSynced(true);
-      setTimeout(() => setSynced(false), 3000);
-    }, 1200);
   };
 
   return (
@@ -138,19 +90,19 @@ export default function OnePager() {
           <nav className="hidden md:flex items-center gap-8">
             <a href="#monitor" className="text-sm font-medium hover:text-primary transition-colors">Monitoring</a>
             <a href="#insights" className="text-sm font-medium hover:text-primary transition-colors">AI Insights</a>
-            <a href="#system" className="text-sm font-medium hover:text-primary transition-colors">Simulation Hub</a>
+            <a href="#hub" className="text-sm font-medium hover:text-primary transition-colors">System Hub</a>
           </nav>
 
           <div className="flex items-center gap-4">
             {!user ? (
               <Button onClick={handleConnect} disabled={isUserLoading} variant="outline" size="sm" className="gap-2">
                 <Cloud className="w-4 h-4" />
-                Connect to Cloud
+                Connect Cloud
               </Button>
             ) : (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-bold text-primary uppercase">Cloud Connected</span>
+                <span className="text-xs font-bold text-primary uppercase">Connected</span>
               </div>
             )}
           </div>
@@ -163,17 +115,17 @@ export default function OnePager() {
           <div className="space-y-8">
             <div className="space-y-4">
               <h2 className="text-5xl lg:text-7xl font-headline font-extrabold text-primary leading-tight">
-                Live Monitoring <br />
-                <span className="text-accent">Real-Time Growth.</span>
+                Live Sensor <br />
+                <span className="text-accent">Intelligence.</span>
               </h2>
-              <p className="text-xl text-muted-foreground max-w-xl">
-                Displaying the latest data from your sensor hub at <code className="bg-muted px-1 rounded">history/latest</code>.
-              </p>
+              <div className="text-xl text-muted-foreground max-w-xl">
+                Streaming your real-time hydroponics data from <code className="bg-muted px-1 rounded">history/latest</code>.
+              </div>
             </div>
             
             <div className="flex gap-4">
               <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8" asChild>
-                <a href="#monitor">View System Trends</a>
+                <a href="#monitor">View Live Trends</a>
               </Button>
             </div>
           </div>
@@ -192,18 +144,18 @@ export default function OnePager() {
           </div>
         </section>
 
-        {/* Monitoring Dashboard Section */}
+        {/* Monitoring Section */}
         <section id="monitor" className="py-24 bg-muted/30">
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-headline font-bold text-primary">System Trends</h2>
+                <h2 className="text-3xl font-headline font-bold text-primary">Real-Time Monitoring</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="text-muted-foreground text-sm">Historical analytics and real-time streaming</p>
+                  <div className="text-muted-foreground text-sm">Visualizing data stream from your sensor hub</div>
                   {lastUpdated && (
                     <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60 uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">
                       <Clock className="w-3 h-3" />
-                      Live Update: {lastUpdated}
+                      Updated: {lastUpdated}
                     </div>
                   )}
                 </div>
@@ -214,7 +166,7 @@ export default function OnePager() {
                   <span className={`relative inline-flex rounded-full h-2 w-2 ${isLive ? 'bg-accent' : 'bg-muted-foreground'}`}></span>
                 </span>
                 <span className="text-xs font-bold text-accent uppercase tracking-tighter">
-                  {isLive ? 'Streaming Live' : 'Waiting for Data'}
+                  {isLive ? 'Live Stream Active' : 'Waiting for Data'}
                 </span>
               </div>
             </div>
@@ -229,20 +181,20 @@ export default function OnePager() {
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary text-xs font-bold uppercase">
                 <Zap className="w-3 h-3" />
-                Intelligence Layer
+                AI Optimization
               </div>
               <h2 className="text-4xl font-headline font-bold text-primary leading-tight">
-                AI Powered Growth Analysis
+                Dynamic Growth Recommendation
               </h2>
-              <p className="text-lg text-muted-foreground">
-                Analyzing your real-time data against optimal parameters.
-              </p>
-              {sensors.ph < 5.5 && (
+              <div className="text-lg text-muted-foreground">
+                Analyzing your current sensor values against optimal growth curves.
+              </div>
+              {sensors.ph < 4.0 && (
                 <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-destructive">Critical pH Alert</h4>
-                    <p className="text-sm text-destructive/80">Your pH ({sensors.ph}) is significantly below the target range. Root damage may occur.</p>
+                    <h4 className="font-bold text-destructive">Low pH Detected</h4>
+                    <div className="text-sm text-destructive/80">Current pH: {sensors.ph}. Please adjust your nutrient solution.</div>
                   </div>
                 </div>
               )}
@@ -251,66 +203,68 @@ export default function OnePager() {
           </div>
         </section>
 
-        {/* Simulation Hub */}
-        <section id="system" className="py-24 bg-white/50 border-t border-muted">
+        {/* Real-Time Hub */}
+        <section id="hub" className="py-24 bg-white/50 border-t border-muted">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-12 bg-background rounded-[2.5rem] border border-muted shadow-2xl overflow-hidden relative">
               <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl -mr-32 -mt-32" />
               
-              <div className="relative z-10 grid md:grid-cols-2 gap-12">
-                <div className="space-y-6">
+              <div className="relative z-10 space-y-8">
+                <div className="flex items-center justify-between">
                   <h3 className="text-3xl font-headline font-bold text-primary flex items-center gap-3">
-                    <Database className="w-8 h-8 text-accent" />
-                    Simulation Hub
+                    <Cpu className="w-8 h-8 text-accent" />
+                    Live System Hub
                   </h3>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 font-headline">RTDB Status</div>
-                      <div className="font-bold text-primary flex items-center gap-2 text-sm">
-                        <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-accent' : 'bg-muted-foreground'}`} />
-                        {isLive ? 'Live Stream Active' : 'Offline'}
-                      </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-xl border border-muted">
+                    <Database className="w-4 h-4 text-primary/60" />
+                    <span className="text-xs font-bold text-primary/80 uppercase tracking-tight">RTDB Stream</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="p-6 bg-white rounded-2xl border border-muted shadow-sm hover:shadow-md transition-shadow">
+                    <div className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-2 font-headline">
+                      <FlaskConical className="w-4 h-4 text-primary" /> pH Level
                     </div>
-                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 font-headline">Auth Status</div>
-                      <div className="font-bold text-primary flex items-center gap-2 text-sm">
-                        <div className={`w-2 h-2 rounded-full ${user ? 'bg-primary' : 'bg-muted-foreground'}`} />
-                        {user ? 'Authenticated' : 'Not Connected'}
-                      </div>
+                    <div className="font-bold text-primary text-4xl tracking-tighter">{sensors.ph}</div>
+                    <div className="mt-2 text-[10px] text-muted-foreground uppercase font-bold">Optimal: 5.5 - 6.5</div>
+                  </div>
+
+                  <div className="p-6 bg-white rounded-2xl border border-muted shadow-sm hover:shadow-md transition-shadow">
+                    <div className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-2 font-headline">
+                      <Thermometer className="w-4 h-4 text-accent" /> Temperature
                     </div>
-                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1 font-headline"><FlaskConical className="w-3 h-3" /> pH Level</div>
-                      <div className="font-bold text-primary text-xl tracking-tight">{sensors.ph}</div>
+                    <div className="font-bold text-primary text-4xl tracking-tighter">{sensors.temperature}°C</div>
+                    <div className="mt-2 text-[10px] text-muted-foreground uppercase font-bold">Optimal: 18 - 24°C</div>
+                  </div>
+
+                  <div className="p-6 bg-white rounded-2xl border border-muted shadow-sm hover:shadow-md transition-shadow">
+                    <div className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-2 font-headline">
+                      <Droplets className="w-4 h-4 text-accent" /> Humidity
                     </div>
-                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1 font-headline"><Thermometer className="w-3 h-3" /> Temperature</div>
-                      <div className="font-bold text-primary text-xl tracking-tight">{sensors.temperature}°C</div>
+                    <div className="font-bold text-primary text-4xl tracking-tighter">{sensors.humidity}%</div>
+                    <div className="mt-2 text-[10px] text-muted-foreground uppercase font-bold">Optimal: 50 - 70%</div>
+                  </div>
+
+                  <div className="p-6 bg-white rounded-2xl border border-muted shadow-sm hover:shadow-md transition-shadow">
+                    <div className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-2 font-headline">
+                      <Activity className="w-4 h-4 text-primary" /> Nutrient TDS
                     </div>
-                    <div className="p-4 bg-white rounded-2xl border border-muted shadow-sm">
-                      <div className="text-xs font-bold text-muted-foreground uppercase mb-1 flex items-center gap-1 font-headline"><Droplets className="w-3 h-3" /> Humidity</div>
-                      <div className="font-bold text-primary text-xl tracking-tight">{sensors.humidity}%</div>
-                    </div>
+                    <div className="font-bold text-primary text-4xl tracking-tighter">{sensors.tds}</div>
+                    <div className="mt-2 text-[10px] text-muted-foreground uppercase font-bold">PPM Value</div>
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-center gap-6">
-                  <div className="bg-primary p-8 rounded-[2rem] text-primary-foreground shadow-xl">
-                    <h4 className="text-lg font-bold flex items-center gap-2 mb-4 font-headline">
-                      <Send className="w-5 h-5" />
-                      Firestore Simulation
-                    </h4>
-                    <p className="text-sm text-primary-foreground/70 mb-6 leading-relaxed">
-                      Push the current sensor values to Firestore to test your collection structure and security rules.
-                    </p>
-                    <Button 
-                      onClick={handleSimulateFirestorePush} 
-                      disabled={syncing || !user}
-                      className="w-full bg-accent hover:bg-accent/90 text-primary font-bold shadow-lg shadow-accent/20"
-                    >
-                      {syncing ? "Simulating..." : synced ? "Record Pushed!" : "Trigger Collection Simulation"}
-                      {synced ? <CheckCircle2 className="w-4 h-4 ml-2" /> : <Send className="w-4 h-4 ml-2" />}
-                    </Button>
+                <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <div className="font-bold text-primary">Controller Status</div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-accent' : 'bg-muted-foreground'}`} />
+                      {isLive ? 'Active connection to Sensor Hub' : 'Awaiting sensor hub handshake...'}
+                    </div>
+                  </div>
+                  <div className="text-xs font-medium text-muted-foreground bg-white px-4 py-2 rounded-lg border border-muted">
+                    Listening at: history/latest
                   </div>
                 </div>
               </div>
@@ -325,9 +279,9 @@ export default function OnePager() {
             <Waves className="w-5 h-5 text-primary" />
             <span className="font-headline font-bold text-primary">AquaSense</span>
           </div>
-          <p className="text-sm text-muted-foreground font-medium">
-            © {new Date().getFullYear()} AquaSense Hydroponics Monitoring.
-          </p>
+          <div className="text-sm text-muted-foreground font-medium">
+            © {new Date().getFullYear()} AquaSense Monitoring Hub.
+          </div>
         </div>
       </footer>
     </div>
