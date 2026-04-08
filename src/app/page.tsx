@@ -42,7 +42,7 @@ export default function OnePager() {
     ph: 6.2,
     temperature: 22.4,
     humidity: 64,
-    tds: 1.8,
+    tds: 0,
   });
 
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-hydroponics');
@@ -50,14 +50,14 @@ export default function OnePager() {
   useEffect(() => {
     if (!rtdb) return;
 
-    // Monitoring the history/latest path as requested
+    // Monitoring the history/latest path for real-time sensor hub data
     const latestRef = ref(rtdb, 'history/latest');
     
     const unsubscribe = onValue(latestRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setIsLive(true);
-        // Mapping exactly to the keys reported: humidity, ph, tds, temperature
+        // Robust mapping for reported keys: humidity, ph, tds, temperature
         setSensors({
           ph: data.ph !== undefined ? Number(data.ph) : 6.2,
           temperature: data.temperature !== undefined ? Number(data.temperature) : 22.4,
@@ -118,9 +118,6 @@ export default function OnePager() {
                 Live Sensor <br />
                 <span className="text-accent">Intelligence.</span>
               </h2>
-              <div className="text-xl text-muted-foreground max-w-xl">
-                Streaming your real-time hydroponics data from <code className="bg-muted px-1 rounded">history/latest</code>.
-              </div>
             </div>
             
             <div className="flex gap-4">
@@ -221,7 +218,7 @@ export default function OnePager() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="p-6 bg-white rounded-2xl border border-muted shadow-sm hover:shadow-md transition-shadow">
                     <div className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-2 font-headline">
                       <FlaskConical className="w-4 h-4 text-primary" /> pH Level
@@ -245,14 +242,6 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-4xl tracking-tighter">{sensors.humidity}%</div>
                     <div className="mt-2 text-[10px] text-muted-foreground uppercase font-bold">Optimal: 50 - 70%</div>
                   </div>
-
-                  <div className="p-6 bg-white rounded-2xl border border-muted shadow-sm hover:shadow-md transition-shadow">
-                    <div className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center gap-2 font-headline">
-                      <Activity className="w-4 h-4 text-primary" /> Nutrient TDS
-                    </div>
-                    <div className="font-bold text-primary text-4xl tracking-tighter">{sensors.tds}</div>
-                    <div className="mt-2 text-[10px] text-muted-foreground uppercase font-bold">PPM Value</div>
-                  </div>
                 </div>
 
                 <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -260,7 +249,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary">Controller Status</div>
                     <div className="text-sm text-muted-foreground flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-accent' : 'bg-muted-foreground'}`} />
-                      {isLive ? 'Active connection to Sensor Hub' : 'Awaiting sensor hub handshake...'}
+                      <div>{isLive ? 'Active connection to Sensor Hub' : 'Awaiting sensor hub handshake...'}</div>
                     </div>
                   </div>
                   <div className="text-xs font-medium text-muted-foreground bg-white px-4 py-2 rounded-lg border border-muted">
