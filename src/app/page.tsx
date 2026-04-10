@@ -127,7 +127,7 @@ export default function OnePager() {
             <div className="bg-primary p-2 rounded-lg text-white">
               <Waves className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-headline font-bold text-primary tracking-tight">AquaSense</h1>
+            <h1 className="text-xl font-headline font-bold text-primary tracking-tight">Tubignawater</h1>
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
@@ -306,10 +306,10 @@ export default function OnePager() {
             <div className="bg-primary/10 p-2 rounded-lg">
               <Waves className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-headline font-bold text-primary tracking-tight text-xl">AquaSense</span>
+            <span className="font-headline font-bold text-primary tracking-tight text-xl">Tubignawater</span>
           </div>
           <div className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest text-center md:text-right">
-            © {new Date().getFullYear()} AquaSense Monitoring Framework. <br />
+            © {new Date().getFullYear()} Tubignawater Monitoring Framework. <br />
             <span className="text-[9px] opacity-60">High Performance Data Stream Interface</span>
           </div>
         </div>

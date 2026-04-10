@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/20">
                 <Waves className="w-5 h-5" />
               </div>
-              <span className="font-headline font-bold text-xl text-primary tracking-tight">AquaSense</span>
+              <span className="font-headline font-bold text-xl text-primary tracking-tight">Tubignawater</span>
             </Link>
           </SidebarHeader>
           <SidebarContent className="px-3">

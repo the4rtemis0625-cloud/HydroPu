@@ -4,7 +4,7 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'AquaSense | Hydroponics Monitoring',
+  title: 'Tubignawater | Hydroponics Monitoring',
   description: 'Precision monitoring and AI optimization for hydroponic systems.',
 };
 
