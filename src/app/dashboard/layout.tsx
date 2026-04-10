@@ -14,12 +14,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/20">
                 <Waves className="w-5 h-5" />
               </div>
-              <span className="font-headline font-bold text-xl text-primary tracking-tight">I MISS MY BABYYY!</span>
+              <span className="font-headline font-bold text-xl text-primary tracking-tight">HydroPu</span>
             </Link>
           </SidebarHeader>
           <SidebarContent className="px-3">
             <SidebarGroup>
-              <SidebarGroupLabel className="text-muted-foreground/50 px-3 py-2 text-[10px] uppercase font-bold tracking-widest">General</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-muted-foreground/50 px-3 py-2 text-[10px] uppercase font-bold tracking-widest"> General</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>

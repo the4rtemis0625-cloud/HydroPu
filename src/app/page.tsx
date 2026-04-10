@@ -121,7 +121,7 @@ export default function OnePager() {
             <div className="bg-primary p-2 rounded-lg text-white">
               <Waves className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-headline font-bold text-primary tracking-tight">I MISS MY BABYYY!</h1>
+            <h1 className="text-xl font-headline font-bold text-primary tracking-tight">HydroPu</h1>
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
@@ -293,10 +293,10 @@ export default function OnePager() {
             <div className="bg-primary/10 p-2 rounded-lg">
               <Waves className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-headline font-bold text-primary tracking-tight text-xl">I MISS MY BABYYY!</span>
+            <span className="font-headline font-bold text-primary tracking-tight text-xl">HydroPu</span>
           </div>
           <div className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest text-center md:text-right">
-            © {new Date().getFullYear()} I MISS MY BABYYY! Monitoring Framework. <br />
+            © {new Date().getFullYear()} HydroPu Monitoring Framework. <br />
             <span className="text-[9px] opacity-60">High Performance Data Stream Interface</span>
           </div>
         </div>
