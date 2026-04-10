@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
@@ -15,7 +14,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/20">
                 <Waves className="w-5 h-5" />
               </div>
-              <span className="font-headline font-bold text-xl text-primary tracking-tight">Tubignawater</span>
+              <span className="font-headline font-bold text-xl text-primary tracking-tight">I MISS MY BABYYY!</span>
             </Link>
           </SidebarHeader>
           <SidebarContent className="px-3">

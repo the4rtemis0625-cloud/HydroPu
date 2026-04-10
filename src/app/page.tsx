@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -42,20 +41,17 @@ export default function OnePager() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
   
-  // Individual pump states
   const [pumps, setPumps] = useState<PumpStates>({
     pump1: false,
     pump2: false,
     pump3: false
   });
   
-  // Initialize with null to ensure hydration matches server
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
   useEffect(() => {
     if (!rtdb) return;
 
-    // Listen to real-time sensor data at the 'latest' path
     const latestRef = ref(rtdb, 'latest');
     const unsubscribeSensors = onValue(latestRef, (snapshot) => {
       const data = snapshot.val();
@@ -71,7 +67,6 @@ export default function OnePager() {
       }
     });
 
-    // Listen to individual pump statuses
     const pump1Ref = ref(rtdb, 'settings/pump1Status');
     const unsubscribePump1 = onValue(pump1Ref, (snapshot) => {
       setPumps(prev => ({ ...prev, pump1: snapshot.val() === 'on' }));
@@ -120,14 +115,13 @@ export default function OnePager() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-body">
-      {/* Navigation Header */}
       <header className="sticky top-0 z-50 w-full bg-background/80 border-b border-muted/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="bg-primary p-2 rounded-lg text-white">
               <Waves className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-headline font-bold text-primary tracking-tight">Tubignawater</h1>
+            <h1 className="text-xl font-headline font-bold text-primary tracking-tight">I MISS MY BABYYY!</h1>
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
@@ -152,7 +146,6 @@ export default function OnePager() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="relative w-full max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
           <div className="space-y-6 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full text-accent text-[10px] font-bold uppercase tracking-widest border border-accent/20">
@@ -165,7 +158,6 @@ export default function OnePager() {
           </div>
         </section>
 
-        {/* Real-Time Hub */}
         <section id="hub" className="py-12 bg-background">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-10 bg-white rounded-[3rem] border border-muted shadow-2xl relative overflow-hidden">
@@ -188,7 +180,6 @@ export default function OnePager() {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {/* pH Balance Card */}
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                       <FlaskConical className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> pH Level
@@ -199,7 +190,6 @@ export default function OnePager() {
                     <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 5.5 — 6.5</div>
                   </div>
 
-                  {/* Temperature Card */}
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                       <Thermometer className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" /> Temperature
@@ -210,7 +200,6 @@ export default function OnePager() {
                     <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 18 — 24°C</div>
                   </div>
 
-                  {/* Humidity Card */}
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                       <Droplets className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" /> Humidity
@@ -221,7 +210,6 @@ export default function OnePager() {
                     <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 50 — 70%</div>
                   </div>
 
-                  {/* TDS Card */}
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                       <Activity className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> TDS Level
@@ -254,7 +242,6 @@ export default function OnePager() {
                     </div>
                   </div>
                   
-                  {/* Simulation Hub */}
                   <div id="controls" className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-6">
                     <div className="flex items-center justify-between border-b border-primary/10 pb-4">
                       <h3 className="font-headline font-bold text-primary flex items-center gap-2 text-sm">
@@ -306,10 +293,10 @@ export default function OnePager() {
             <div className="bg-primary/10 p-2 rounded-lg">
               <Waves className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-headline font-bold text-primary tracking-tight text-xl">Tubignawater</span>
+            <span className="font-headline font-bold text-primary tracking-tight text-xl">I MISS MY BABYYY!</span>
           </div>
           <div className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest text-center md:text-right">
-            © {new Date().getFullYear()} Tubignawater Monitoring Framework. <br />
+            © {new Date().getFullYear()} I MISS MY BABYYY! Monitoring Framework. <br />
             <span className="text-[9px] opacity-60">High Performance Data Stream Interface</span>
           </div>
         </div>

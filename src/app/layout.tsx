@@ -1,17 +1,16 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Tubignawater | Hydroponics Monitoring',
+  title: 'I MISS MY BABYYY! | Hydroponics Monitoring',
   description: 'Precision monitoring and AI optimization for hydroponic systems.',
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ValueNode;
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
