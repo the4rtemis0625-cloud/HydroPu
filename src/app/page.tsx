@@ -43,7 +43,8 @@ export default function OnePager() {
   
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
-  const [camTimestamp, setCamTimestamp] = useState(Date.now());
+  const [camTimestamp, setCamTimestamp] = useState<number | null>(null);
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
   
   const [pumps, setPumps] = useState<PumpStates>({
     pump1: false,
@@ -52,6 +53,12 @@ export default function OnePager() {
   });
   
   const [sensors, setSensors] = useState<SensorData | null>(null);
+
+  useEffect(() => {
+    // Fix hydration error by setting dynamic values only on client
+    setCamTimestamp(Date.now());
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   useEffect(() => {
     if (!rtdb) return;
@@ -205,13 +212,17 @@ export default function OnePager() {
                       <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                       <span className="text-[10px] font-bold text-white uppercase tracking-wider">Stream: CAM-01</span>
                     </div>
-                    <Image 
-                      src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam1.jpg?t=${camTimestamp}`}
-                      alt="Hydroponics Camera Feed"
-                      fill
-                      className="object-cover transition-transform group-hover:scale-[1.02] duration-500"
-                      unoptimized // Since this is a live-ish camera feed that changes on the same URL
-                    />
+                    {camTimestamp !== null ? (
+                      <Image 
+                        src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam1.jpg?t=${camTimestamp}`}
+                        alt="Hydroponics Camera Feed"
+                        fill
+                        className="object-cover transition-transform group-hover:scale-[1.02] duration-500"
+                        unoptimized // Since this is a live-ish camera feed that changes on the same URL
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted animate-pulse" />
+                    )}
                   </div>
                 </div>
                 
@@ -332,7 +343,7 @@ export default function OnePager() {
             <span className="font-headline font-bold text-primary tracking-tight text-xl">HydroPu</span>
           </div>
           <div className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest text-center md:text-right">
-            © {new Date().getFullYear()} HydroPu Monitoring Framework. <br />
+            © {currentYear || '...'} HydroPu Monitoring Framework. <br />
             <span className="text-[9px] opacity-60">High Performance Data Stream Interface</span>
           </div>
         </div>
