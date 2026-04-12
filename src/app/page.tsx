@@ -210,7 +210,7 @@ export default function OnePager() {
                   <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
                     <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
                       <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-[10px] font-bold text-white uppercase tracking-wider">Stream: CAM-01</span>
+                      <span className="text-[10px] font-bold text-white uppercase tracking-wider">CAM-01</span>
                     </div>
                     {camTimestamp !== null ? (
                       <Image 
