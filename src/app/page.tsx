@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { 
   Waves, 
@@ -14,7 +15,9 @@ import {
   RotateCcw,
   Activity,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Camera,
+  RefreshCw
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -40,6 +43,7 @@ export default function OnePager() {
   
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [camTimestamp, setCamTimestamp] = useState(Date.now());
   
   const [pumps, setPumps] = useState<PumpStates>({
     pump1: false,
@@ -111,6 +115,10 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/pump3Status'), targetStatus);
   };
 
+  const refreshCamera = () => {
+    setCamTimestamp(Date.now());
+  };
+
   const allPumpsOn = pumps.pump1 && pumps.pump2 && pumps.pump3;
 
   return (
@@ -125,6 +133,7 @@ export default function OnePager() {
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
+            <a href="#vision" className="text-sm font-medium hover:text-primary transition-colors">Vision</a>
             <a href="#hub" className="text-sm font-medium hover:text-primary transition-colors">Sensor Hub</a>
             <a href="#controls" className="text-sm font-medium hover:text-primary transition-colors">Pump Controls</a>
           </nav>
@@ -158,7 +167,7 @@ export default function OnePager() {
           </div>
         </section>
 
-        <section id="hub" className="py-12 bg-background">
+        <section id="vision" className="py-12 bg-background">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-10 bg-white rounded-[3rem] border border-muted shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-80 h-80 bg-accent/5 rounded-full blur-[100px] -mr-40 -mt-40" />
@@ -178,8 +187,35 @@ export default function OnePager() {
                     </div>
                   </div>
                 </div>
+
+                {/* Camera Feed Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-accent" />
+                      Live Vision
+                    </h4>
+                    <Button onClick={refreshCamera} variant="ghost" size="sm" className="text-xs gap-2">
+                      <RefreshCw className="w-3 h-3" />
+                      Refresh Feed
+                    </Button>
+                  </div>
+                  <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
+                    <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-[10px] font-bold text-white uppercase tracking-wider">Stream: CAM-01</span>
+                    </div>
+                    <Image 
+                      src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam1.jpg?t=${camTimestamp}`}
+                      alt="Hydroponics Camera Feed"
+                      fill
+                      className="object-cover transition-transform group-hover:scale-[1.02] duration-500"
+                      unoptimized // Since this is a live-ish camera feed that changes on the same URL
+                    />
+                  </div>
+                </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div id="hub" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                       <FlaskConical className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> pH Level
