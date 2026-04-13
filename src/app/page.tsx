@@ -17,7 +17,9 @@ import {
   ToggleLeft,
   ToggleRight,
   Camera,
-  RefreshCw
+  RefreshCw,
+  Flame,
+  CloudRain
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -52,10 +54,11 @@ export default function OnePager() {
     pump3: false
   });
   
+  const [heater, setHeater] = useState(false);
+  const [sprinkler, setSprinkler] = useState(false);
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
   useEffect(() => {
-    // Fix hydration error by setting dynamic values only on client
     setCamTimestamp(Date.now());
     setCurrentYear(new Date().getFullYear());
   }, []);
@@ -93,11 +96,23 @@ export default function OnePager() {
       setPumps(prev => ({ ...prev, pump3: snapshot.val() === 'on' }));
     });
 
+    const heaterRef = ref(rtdb, 'settings/heaterStatus');
+    const unsubscribeHeater = onValue(heaterRef, (snapshot) => {
+      setHeater(snapshot.val() === 'on');
+    });
+
+    const sprinklerRef = ref(rtdb, 'settings/sprinklerStatus');
+    const unsubscribeSprinkler = onValue(sprinklerRef, (snapshot) => {
+      setSprinkler(snapshot.val() === 'on');
+    });
+
     return () => {
       unsubscribeSensors();
       unsubscribePump1();
       unsubscribePump2();
       unsubscribePump3();
+      unsubscribeHeater();
+      unsubscribeSprinkler();
     };
   }, [rtdb]);
 
@@ -113,6 +128,16 @@ export default function OnePager() {
     const pumpRef = ref(rtdb, `settings/pump${pumpId}Status`);
     const nextStatus = pumps[pumpKey] ? 'off' : 'on';
     set(pumpRef, nextStatus);
+  };
+
+  const toggleHeater = () => {
+    if (!rtdb) return;
+    set(ref(rtdb, 'settings/heaterStatus'), heater ? 'off' : 'on');
+  };
+
+  const toggleSprinkler = () => {
+    if (!rtdb) return;
+    set(ref(rtdb, 'settings/sprinklerStatus'), sprinkler ? 'off' : 'on');
   };
 
   const toggleAllPumps = (targetStatus: 'on' | 'off') => {
@@ -142,7 +167,7 @@ export default function OnePager() {
           <nav className="hidden md:flex items-center gap-8">
             <a href="#vision" className="text-sm font-medium hover:text-primary transition-colors">Vision</a>
             <a href="#hub" className="text-sm font-medium hover:text-primary transition-colors">Sensor Hub</a>
-            <a href="#controls" className="text-sm font-medium hover:text-primary transition-colors">Pump Controls</a>
+            <a href="#controls" className="text-sm font-medium hover:text-primary transition-colors">System Controls</a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -195,7 +220,6 @@ export default function OnePager() {
                   </div>
                 </div>
 
-                {/* Camera Feed Section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-lg font-bold text-primary flex items-center gap-2">
@@ -218,7 +242,7 @@ export default function OnePager() {
                         alt="Hydroponics Camera Feed"
                         fill
                         className="object-cover transition-transform group-hover:scale-[1.02] duration-500"
-                        unoptimized // Since this is a live-ish camera feed that changes on the same URL
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full bg-muted animate-pulse" />
@@ -293,7 +317,7 @@ export default function OnePager() {
                     <div className="flex items-center justify-between border-b border-primary/10 pb-4">
                       <h3 className="font-headline font-bold text-primary flex items-center gap-2 text-sm">
                         <RotateCcw className="w-5 h-5 text-accent" />
-                        Pump Controller Hub
+                        System Controller Hub
                       </h3>
                     </div>
 
@@ -317,6 +341,36 @@ export default function OnePager() {
                           </div>
                         );
                       })}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Heater</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${heater ? 'bg-orange-500' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button 
+                          onClick={toggleHeater}
+                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${heater ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'}`}
+                        >
+                          <Flame className="w-3 h-3 mr-2" />
+                          {heater ? 'HEATING' : 'IDLE'}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Sprinkler</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${sprinkler ? 'bg-blue-400' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button 
+                          onClick={toggleSprinkler}
+                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${sprinkler ? 'bg-blue-400 text-white' : 'bg-muted text-muted-foreground'}`}
+                        >
+                          <CloudRain className="w-3 h-3 mr-2" />
+                          {sprinkler ? 'ACTIVE' : 'OFF'}
+                        </Button>
+                      </div>
                     </div>
 
                     <Button 
