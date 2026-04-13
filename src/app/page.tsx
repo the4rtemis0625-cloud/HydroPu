@@ -220,7 +220,7 @@ export default function OnePager() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h4 className="text-lg font-bold text-primary flex items-center gap-2">
                       <Camera className="w-5 h-5 text-accent" />
@@ -231,22 +231,27 @@ export default function OnePager() {
                       Refresh Feed
                     </Button>
                   </div>
-                  <div className="relative aspect-video w-full max-w-4xl mx-auto rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
-                    <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-[10px] font-bold text-white uppercase tracking-wider">CAM-01</span>
-                    </div>
-                    {camTimestamp !== null ? (
-                      <Image 
-                        src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam1.jpg?t=${camTimestamp}`}
-                        alt="Hydroponics Camera Feed"
-                        fill
-                        className="object-cover transition-transform group-hover:scale-[1.02] duration-500"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-muted animate-pulse" />
-                    )}
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3, 4, 5, 6].map((num) => (
+                      <div key={num} className="relative aspect-video w-full rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
+                        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          <span className="text-[9px] font-bold text-white uppercase tracking-wider">CAM-0{num}</span>
+                        </div>
+                        {camTimestamp !== null ? (
+                          <Image 
+                            src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam${num}.jpg?t=${camTimestamp}`}
+                            alt={`Hydroponics Camera Feed ${num}`}
+                            fill
+                            className="object-cover transition-transform group-hover:scale-[1.05] duration-500"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted animate-pulse" />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
                 
