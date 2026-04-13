@@ -124,8 +124,8 @@ export default function OnePager() {
 
   const togglePump = (pumpId: 1 | 2 | 3) => {
     if (!rtdb) return;
-    const pumpKey = `pump${pumpId}` as keyof PumpStates;
     const pumpRef = ref(rtdb, `settings/pump${pumpId}Status`);
+    const pumpKey = `pump${pumpId}` as keyof PumpStates;
     const nextStatus = pumps[pumpKey] ? 'off' : 'on';
     set(pumpRef, nextStatus);
   };
@@ -224,7 +224,7 @@ export default function OnePager() {
                   <div className="flex items-center justify-between">
                     <h4 className="text-lg font-bold text-primary flex items-center gap-2">
                       <Camera className="w-5 h-5 text-accent" />
-                      Live Vision
+                      Latest Capture
                     </h4>
                     <Button onClick={refreshCamera} variant="ghost" size="sm" className="text-xs gap-2">
                       <RefreshCw className="w-3 h-3" />
