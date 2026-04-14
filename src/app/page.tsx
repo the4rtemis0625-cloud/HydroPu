@@ -365,7 +365,7 @@ export default function OnePager() {
                 <div id="hub" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <FlaskConical className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" /> pH Level
+                      <FlaskConical className="w-4 h-4 text-primary animate-pulse group-hover:scale-110 transition-transform" /> pH Level
                     </div>
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? sensors.ph.toFixed(2) : '---'}
