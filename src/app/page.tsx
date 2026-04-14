@@ -20,7 +20,8 @@ import {
   RefreshCw,
   Flame,
   CloudRain,
-  Beaker
+  Beaker,
+  Leaf
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -39,6 +40,14 @@ interface PumpStates {
   pump3: boolean;
 }
 
+const LETTUCE_QUOTES = [
+  "Lettuce is like conversation: it must be fresh and crisp.",
+  "Planting a garden is to believe in tomorrow.",
+  "The glory of gardening: hands in the dirt, head in the sun, heart with nature.",
+  "Grow your own, it's better for the soul.",
+  "Fresh lettuce is the heart of a healthy home."
+];
+
 export default function OnePager() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
@@ -48,6 +57,7 @@ export default function OnePager() {
   const [isLive, setIsLive] = useState(false);
   const [camTimestamp, setCamTimestamp] = useState<number | null>(null);
   const [currentYear, setCurrentYear] = useState<number | null>(null);
+  const [quote, setQuote] = useState("");
   
   const [pumps, setPumps] = useState<PumpStates>({
     pump1: false,
@@ -70,6 +80,7 @@ export default function OnePager() {
   useEffect(() => {
     setCamTimestamp(Date.now());
     setCurrentYear(new Date().getFullYear());
+    setQuote(LETTUCE_QUOTES[Math.floor(Math.random() * LETTUCE_QUOTES.length)]);
   }, []);
 
   useEffect(() => {
@@ -420,22 +431,21 @@ export default function OnePager() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                  <div className="p-6 bg-muted/20 rounded-3xl border border-muted shadow-sm flex flex-col justify-center">
-                    <h3 className="font-headline font-bold text-primary mb-4 flex items-center gap-2 text-sm">
-                      <Activity className="w-5 h-5 text-accent" />
-                      Health Metrics
+                  <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center">
+                    <div className="bg-primary/10 p-4 rounded-full mb-6">
+                      <Leaf className="w-10 h-10 text-primary" />
+                    </div>
+                    <h3 className="font-headline font-bold text-primary mb-4 text-lg uppercase tracking-widest">
+                      Grower's Wisdom
                     </h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground">System Status</span>
-                        <div className="flex items-center gap-2 font-bold text-primary">
-                          <div className={`w-2 h-2 rounded-full ${sensors ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
-                          {sensors ? 'Operational' : 'Idle'}
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground">Gateway Protocol</span>
-                        <span className="font-bold text-accent uppercase tracking-tighter">Websocket Active</span>
+                    <div className="relative">
+                      <p className="text-primary/80 font-medium italic text-lg leading-relaxed px-4">
+                        "{quote}"
+                      </p>
+                      <div className="mt-6 flex items-center justify-center gap-2">
+                        <div className="w-8 h-px bg-primary/20" />
+                        <span className="text-[10px] font-bold text-primary/40 uppercase tracking-tighter">HydroPu Planting Guide</span>
+                        <div className="w-8 h-px bg-primary/20" />
                       </div>
                     </div>
                   </div>
