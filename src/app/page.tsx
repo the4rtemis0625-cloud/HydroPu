@@ -385,7 +385,7 @@ export default function OnePager() {
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Droplets className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" /> Humidity
+                      <Droplets className="w-4 h-4 text-accent animate-pulse group-hover:scale-110 transition-transform" /> Humidity
                     </div>
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? `${sensors.humidity.toFixed(1)}%` : '---'}
