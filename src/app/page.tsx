@@ -45,7 +45,10 @@ const LETTUCE_QUOTES = [
   "Planting a garden is to believe in tomorrow.",
   "The glory of gardening: hands in the dirt, head in the sun, heart with nature.",
   "Grow your own, it's better for the soul.",
-  "Fresh lettuce is the heart of a healthy home."
+  "Fresh lettuce is the heart of a healthy home.",
+  "Gardening is the purest of human pleasures.",
+  "To plant a garden is to dream of a better world.",
+  "The best time to plant a tree was 20 years ago. The second best time is now."
 ];
 
 export default function OnePager() {
@@ -57,7 +60,7 @@ export default function OnePager() {
   const [isLive, setIsLive] = useState(false);
   const [camTimestamp, setCamTimestamp] = useState<number | null>(null);
   const [currentYear, setCurrentYear] = useState<number | null>(null);
-  const [quote, setQuote] = useState("");
+  const [quoteIndex, setQuoteIndex] = useState(0);
   
   const [pumps, setPumps] = useState<PumpStates>({
     pump1: false,
@@ -80,7 +83,15 @@ export default function OnePager() {
   useEffect(() => {
     setCamTimestamp(Date.now());
     setCurrentYear(new Date().getFullYear());
-    setQuote(LETTUCE_QUOTES[Math.floor(Math.random() * LETTUCE_QUOTES.length)]);
+    setQuoteIndex(Math.floor(Math.random() * LETTUCE_QUOTES.length));
+  }, []);
+
+  // Quote Slideshow Interval
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % LETTUCE_QUOTES.length);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -438,15 +449,15 @@ export default function OnePager() {
                     <h3 className="font-headline font-bold text-primary mb-4 text-lg uppercase tracking-widest">
                       Grower's Wisdom
                     </h3>
-                    <div className="relative">
-                      <p className="text-primary/80 font-medium italic text-lg leading-relaxed px-4">
-                        "{quote}"
+                    <div className="relative min-h-[100px] flex items-center justify-center">
+                      <p className="text-primary/80 font-medium italic text-lg leading-relaxed px-4 transition-opacity duration-500 animate-in fade-in">
+                        "{LETTUCE_QUOTES[quoteIndex]}"
                       </p>
-                      <div className="mt-6 flex items-center justify-center gap-2">
-                        <div className="w-8 h-px bg-primary/20" />
-                        <span className="text-[10px] font-bold text-primary/40 uppercase tracking-tighter">HydroPu Planting Guide</span>
-                        <div className="w-8 h-px bg-primary/20" />
-                      </div>
+                    </div>
+                    <div className="mt-6 flex items-center justify-center gap-2">
+                      <div className="w-8 h-px bg-primary/20" />
+                      <span className="text-[10px] font-bold text-primary/40 uppercase tracking-tighter">HydroPu Planting Guide</span>
+                      <div className="w-8 h-px bg-primary/20" />
                     </div>
                   </div>
                   
