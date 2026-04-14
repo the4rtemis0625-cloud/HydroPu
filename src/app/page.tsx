@@ -361,48 +361,6 @@ export default function OnePager() {
                   </div>
                 </div>
 
-                {/* Camera Feeds Grid */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
-                      <Camera className="w-5 h-5 text-accent" />
-                      Latest Capture
-                    </h4>
-                    <div className="flex items-center gap-2">
-                      <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10">
-                        <Camera className="w-3 h-3" />
-                        Trigger Capture
-                      </Button>
-                      <Button onClick={refreshCamera} variant="ghost" size="sm" className="text-xs gap-2">
-                        <RefreshCw className="w-3 h-3" />
-                        Refresh View
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map((num) => (
-                      <div key={num} className="relative aspect-video w-full rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
-                        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                          <span className="text-[9px] font-bold text-white uppercase tracking-wider">CAM-0{num}</span>
-                        </div>
-                        {camTimestamp !== null ? (
-                          <Image 
-                            src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam${num}.jpg?t=${camTimestamp}`}
-                            alt={`Hydroponics Camera Feed ${num}`}
-                            fill
-                            className="object-cover transition-transform group-hover:scale-[1.05] duration-500"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-muted animate-pulse" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
                 {/* Sensor Metrics */}
                 <div id="hub" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -571,6 +529,48 @@ export default function OnePager() {
                       {allPumpsOn ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                       {allPumpsOn ? 'Master Kill Switch (OFF)' : 'Activate Full System (ON)'}
                     </Button>
+                  </div>
+                </div>
+
+                {/* Camera Feeds Grid - MOVED TO THE BOTTOM */}
+                <div className="space-y-6 pt-8 border-t border-muted">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-accent" />
+                      Latest Capture
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10">
+                        <Camera className="w-3 h-3" />
+                        Trigger Capture
+                      </Button>
+                      <Button onClick={refreshCamera} variant="ghost" size="sm" className="text-xs gap-2">
+                        <RefreshCw className="w-3 h-3" />
+                        Refresh View
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3, 4, 5, 6].map((num) => (
+                      <div key={num} className="relative aspect-video w-full rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
+                        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          <span className="text-[9px] font-bold text-white uppercase tracking-wider">CAM-0{num}</span>
+                        </div>
+                        {camTimestamp !== null ? (
+                          <Image 
+                            src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam${num}.jpg?t=${camTimestamp}`}
+                            alt={`Hydroponics Camera Feed ${num}`}
+                            fill
+                            className="object-cover transition-transform group-hover:scale-[1.05] duration-500"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted animate-pulse" />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
