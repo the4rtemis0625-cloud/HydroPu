@@ -341,7 +341,7 @@ export default function OnePager() {
           {/* Waving line animation - Spans full content width */}
           <div className="relative w-full h-8 overflow-hidden mt-8">
             <div className="absolute inset-0 flex items-center">
-              <svg className="w-[200%] h-full text-accent opacity-40 animate-wave" viewBox="0 0 1200 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-[300%] h-full text-accent opacity-40 animate-wave" viewBox="0 0 1200 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M0 20C150 20 150 10 300 10C450 10 450 30 600 30C750 30 750 10 900 10C1050 10 1050 20 1200 20" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
                 <path d="M0 20C150 20 150 10 300 10C450 10 450 30 600 30C750 30 750 10 900 10C1050 10 1050 20 1200 20" stroke="currentColor" strokeWidth="4" strokeLinecap="round" transform="translate(1200, 0)" />
               </svg>
