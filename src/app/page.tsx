@@ -339,7 +339,7 @@ export default function OnePager() {
           </div>
         </section>
 
-        {/* Vision Section */}
+        {/* Vision Section moved to the bottom part of main content area */}
         <section id="vision" className="py-12 bg-background">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-10 bg-white rounded-[3rem] border border-muted shadow-2xl relative overflow-hidden">
