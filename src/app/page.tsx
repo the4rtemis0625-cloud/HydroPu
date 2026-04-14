@@ -153,7 +153,7 @@ export default function OnePager() {
     const unsubscribeSol2 = onValue(sol2Ref, (snapshot) => {
       const isOn = snapshot.val() === 'on';
       setSolution2(isOn);
-      if (!isOn) setSolution1TimeLeft(null);
+      if (!isOn) setSolution2TimeLeft(null);
     });
 
     return () => {
@@ -395,7 +395,7 @@ export default function OnePager() {
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-primary group-hover:scale-110 transition-transform animate-pulse" /> TDS Level
+                      <Activity className="w-4 h-4 text-primary animate-pulse group-hover:scale-110 transition-transform" /> TDS Level
                     </div>
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? sensors.tds : '---'}
@@ -407,7 +407,7 @@ export default function OnePager() {
                 {/* Grower's Wisdom & System Controller Hub */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                   <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center">
-                    <div className="bg-primary/10 p-4 rounded-full mb-6">
+                    <div className="bg-primary/10 p-4 rounded-full mb-6 animate-pulse">
                       <Leaf className="w-10 h-10 text-primary" />
                     </div>
                     <h3 className="font-headline font-bold text-primary mb-4 text-lg uppercase tracking-widest">
