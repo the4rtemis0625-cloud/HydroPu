@@ -61,9 +61,11 @@ export default function OnePager() {
   const [solution2, setSolution2] = useState(false);
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
-  // Timer states for heater and sprinkler
+  // Timer states
   const [heaterTimeLeft, setHeaterTimeLeft] = useState<number | null>(null);
   const [sprinklerTimeLeft, setSprinklerTimeLeft] = useState<number | null>(null);
+  const [solution1TimeLeft, setSolution1TimeLeft] = useState<number | null>(null);
+  const [solution2TimeLeft, setSolution2TimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
     setCamTimestamp(Date.now());
@@ -119,12 +121,16 @@ export default function OnePager() {
 
     const sol1Ref = ref(rtdb, 'settings/solution1Status');
     const unsubscribeSol1 = onValue(sol1Ref, (snapshot) => {
-      setSolution1(snapshot.val() === 'on');
+      const isOn = snapshot.val() === 'on';
+      setSolution1(isOn);
+      if (!isOn) setSolution1TimeLeft(null);
     });
 
     const sol2Ref = ref(rtdb, 'settings/solution2Status');
     const unsubscribeSol2 = onValue(sol2Ref, (snapshot) => {
-      setSolution2(snapshot.val() === 'on');
+      const isOn = snapshot.val() === 'on';
+      setSolution2(isOn);
+      if (!isOn) setSolution2TimeLeft(null);
     });
 
     return () => {
@@ -162,6 +168,30 @@ export default function OnePager() {
     const timer = setTimeout(() => setSprinklerTimeLeft(sprinklerTimeLeft - 1), 1000);
     return () => clearTimeout(timer);
   }, [sprinklerTimeLeft, rtdb]);
+
+  // Solution 1 Countdown Logic
+  useEffect(() => {
+    if (solution1TimeLeft === null) return;
+    if (solution1TimeLeft <= 0) {
+      if (rtdb) set(ref(rtdb, 'settings/solution1Status'), 'off');
+      setSolution1TimeLeft(null);
+      return;
+    }
+    const timer = setTimeout(() => setSolution1TimeLeft(solution1TimeLeft - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [solution1TimeLeft, rtdb]);
+
+  // Solution 2 Countdown Logic
+  useEffect(() => {
+    if (solution2TimeLeft === null) return;
+    if (solution2TimeLeft <= 0) {
+      if (rtdb) set(ref(rtdb, 'settings/solution2Status'), 'off');
+      setSolution2TimeLeft(null);
+      return;
+    }
+    const timer = setTimeout(() => setSolution2TimeLeft(solution2TimeLeft - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [solution2TimeLeft, rtdb]);
 
   const handleConnect = () => {
     if (auth) {
@@ -201,12 +231,24 @@ export default function OnePager() {
 
   const toggleSolution1 = () => {
     if (!rtdb) return;
-    set(ref(rtdb, 'settings/solution1Status'), solution1 ? 'off' : 'on');
+    const nextStatus = solution1 ? 'off' : 'on';
+    set(ref(rtdb, 'settings/solution1Status'), nextStatus);
+    if (nextStatus === 'on') {
+      setSolution1TimeLeft(10);
+    } else {
+      setSolution1TimeLeft(null);
+    }
   };
 
   const toggleSolution2 = () => {
     if (!rtdb) return;
-    set(ref(rtdb, 'settings/solution2Status'), solution2 ? 'off' : 'on');
+    const nextStatus = solution2 ? 'off' : 'on';
+    set(ref(rtdb, 'settings/solution2Status'), nextStatus);
+    if (nextStatus === 'on') {
+      setSolution2TimeLeft(10);
+    } else {
+      setSolution2TimeLeft(null);
+    }
   };
 
   const toggleAllPumps = (targetStatus: 'on' | 'off') => {
@@ -469,7 +511,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution1 ? 'ON' : 'OFF'}
+                          {solution1 ? `ON (${solution1TimeLeft ?? 0}s)` : 'OFF'}
                         </Button>
                       </div>
 
@@ -483,7 +525,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution2 ? 'ON' : 'OFF'}
+                          {solution2 ? `ON (${solution2TimeLeft ?? 0}s)` : 'OFF'}
                         </Button>
                       </div>
                     </div>
