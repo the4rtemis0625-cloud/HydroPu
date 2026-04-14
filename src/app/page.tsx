@@ -19,7 +19,8 @@ import {
   Camera,
   RefreshCw,
   Flame,
-  CloudRain
+  CloudRain,
+  Beaker
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -56,6 +57,8 @@ export default function OnePager() {
   
   const [heater, setHeater] = useState(false);
   const [sprinkler, setSprinkler] = useState(false);
+  const [solution1, setSolution1] = useState(false);
+  const [solution2, setSolution2] = useState(false);
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
   useEffect(() => {
@@ -106,6 +109,16 @@ export default function OnePager() {
       setSprinkler(snapshot.val() === 'on');
     });
 
+    const sol1Ref = ref(rtdb, 'settings/solution1Status');
+    const unsubscribeSol1 = onValue(sol1Ref, (snapshot) => {
+      setSolution1(snapshot.val() === 'on');
+    });
+
+    const sol2Ref = ref(rtdb, 'settings/solution2Status');
+    const unsubscribeSol2 = onValue(sol2Ref, (snapshot) => {
+      setSolution2(snapshot.val() === 'on');
+    });
+
     return () => {
       unsubscribeSensors();
       unsubscribePump1();
@@ -113,6 +126,8 @@ export default function OnePager() {
       unsubscribePump3();
       unsubscribeHeater();
       unsubscribeSprinkler();
+      unsubscribeSol1();
+      unsubscribeSol2();
     };
   }, [rtdb]);
 
@@ -140,6 +155,16 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/sprinklerStatus'), sprinkler ? 'off' : 'on');
   };
 
+  const toggleSolution1 = () => {
+    if (!rtdb) return;
+    set(ref(rtdb, 'settings/solution1Status'), solution1 ? 'off' : 'on');
+  };
+
+  const toggleSolution2 = () => {
+    if (!rtdb) return;
+    set(ref(rtdb, 'settings/solution2Status'), solution2 ? 'off' : 'on');
+  };
+
   const toggleAllPumps = (targetStatus: 'on' | 'off') => {
     if (!rtdb) return;
     set(ref(rtdb, 'settings/pump1Status'), targetStatus);
@@ -153,7 +178,6 @@ export default function OnePager() {
 
   const handleTriggerCapture = () => {
     if (!rtdb) return;
-    // Send a timestamp to trigger hardware capture
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
   };
 
@@ -386,6 +410,36 @@ export default function OnePager() {
                         >
                           <CloudRain className="w-3 h-3 mr-2" />
                           {sprinkler ? 'ACTIVE' : 'OFF'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 1</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${solution1 ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button 
+                          onClick={toggleSolution1}
+                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}
+                        >
+                          <Beaker className="w-3 h-3 mr-2" />
+                          {solution1 ? 'ACTIVE' : 'IDLE'}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 2</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${solution2 ? 'bg-purple-500' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button 
+                          onClick={toggleSolution2}
+                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}
+                        >
+                          <Beaker className="w-3 h-3 mr-2" />
+                          {solution2 ? 'ACTIVE' : 'IDLE'}
                         </Button>
                       </div>
                     </div>
