@@ -90,7 +90,7 @@ export default function OnePager() {
   // Quote Slideshow Interval
   useEffect(() => {
     const interval = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % LETTUES_QUOTES.length);
+      setQuoteIndex((prev) => (prev + 1) % LETTUCE_QUOTES.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
