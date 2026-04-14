@@ -61,6 +61,10 @@ export default function OnePager() {
   const [solution2, setSolution2] = useState(false);
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
+  // Timer states for heater and sprinkler
+  const [heaterTimeLeft, setHeaterTimeLeft] = useState<number | null>(null);
+  const [sprinklerTimeLeft, setSprinklerTimeLeft] = useState<number | null>(null);
+
   useEffect(() => {
     setCamTimestamp(Date.now());
     setCurrentYear(new Date().getFullYear());
@@ -101,12 +105,16 @@ export default function OnePager() {
 
     const heaterRef = ref(rtdb, 'settings/heaterStatus');
     const unsubscribeHeater = onValue(heaterRef, (snapshot) => {
-      setHeater(snapshot.val() === 'on');
+      const isOn = snapshot.val() === 'on';
+      setHeater(isOn);
+      if (!isOn) setHeaterTimeLeft(null);
     });
 
     const sprinklerRef = ref(rtdb, 'settings/sprinklerStatus');
     const unsubscribeSprinkler = onValue(sprinklerRef, (snapshot) => {
-      setSprinkler(snapshot.val() === 'on');
+      const isOn = snapshot.val() === 'on';
+      setSprinkler(isOn);
+      if (!isOn) setSprinklerTimeLeft(null);
     });
 
     const sol1Ref = ref(rtdb, 'settings/solution1Status');
@@ -131,6 +139,30 @@ export default function OnePager() {
     };
   }, [rtdb]);
 
+  // Heater Countdown Logic
+  useEffect(() => {
+    if (heaterTimeLeft === null) return;
+    if (heaterTimeLeft <= 0) {
+      if (rtdb) set(ref(rtdb, 'settings/heaterStatus'), 'off');
+      setHeaterTimeLeft(null);
+      return;
+    }
+    const timer = setTimeout(() => setHeaterTimeLeft(heaterTimeLeft - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [heaterTimeLeft, rtdb]);
+
+  // Sprinkler Countdown Logic
+  useEffect(() => {
+    if (sprinklerTimeLeft === null) return;
+    if (sprinklerTimeLeft <= 0) {
+      if (rtdb) set(ref(rtdb, 'settings/sprinklerStatus'), 'off');
+      setSprinklerTimeLeft(null);
+      return;
+    }
+    const timer = setTimeout(() => setSprinklerTimeLeft(sprinklerTimeLeft - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [sprinklerTimeLeft, rtdb]);
+
   const handleConnect = () => {
     if (auth) {
       initiateAnonymousSignIn(auth);
@@ -147,12 +179,24 @@ export default function OnePager() {
 
   const toggleHeater = () => {
     if (!rtdb) return;
-    set(ref(rtdb, 'settings/heaterStatus'), heater ? 'off' : 'on');
+    const nextStatus = heater ? 'off' : 'on';
+    set(ref(rtdb, 'settings/heaterStatus'), nextStatus);
+    if (nextStatus === 'on') {
+      setHeaterTimeLeft(30);
+    } else {
+      setHeaterTimeLeft(null);
+    }
   };
 
   const toggleSprinkler = () => {
     if (!rtdb) return;
-    set(ref(rtdb, 'settings/sprinklerStatus'), sprinkler ? 'off' : 'on');
+    const nextStatus = sprinkler ? 'off' : 'on';
+    set(ref(rtdb, 'settings/sprinklerStatus'), nextStatus);
+    if (nextStatus === 'on') {
+      setSprinklerTimeLeft(30);
+    } else {
+      setSprinklerTimeLeft(null);
+    }
   };
 
   const toggleSolution1 = () => {
@@ -395,7 +439,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${heater ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <Flame className="w-3 h-3 mr-2" />
-                          {heater ? 'ON' : 'OFF'}
+                          {heater ? `ON (${heaterTimeLeft ?? 0}s)` : 'OFF'}
                         </Button>
                       </div>
 
@@ -409,7 +453,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${sprinkler ? 'bg-blue-400 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <CloudRain className="w-3 h-3 mr-2" />
-                          {sprinkler ? 'ON' : 'OFF'}
+                          {sprinkler ? `ON (${sprinklerTimeLeft ?? 0}s)` : 'OFF'}
                         </Button>
                       </div>
                     </div>
