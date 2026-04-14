@@ -90,7 +90,7 @@ export default function OnePager() {
   // Quote Slideshow Interval
   useEffect(() => {
     const interval = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % LETTUCE_QUOTES.length);
+      setQuoteIndex((prev) => (prev + 1) % LETTUES_QUOTES.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -328,7 +328,7 @@ export default function OnePager() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative w-full max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
-          <div className="space-y-6 max-w-3xl">
+          <div className="space-y-6 max-w-3xl flex flex-col items-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full text-accent text-[10px] font-bold uppercase tracking-widest border border-accent/20">
               <Zap className="w-3 h-3" />
               Live Sensor Protocol
@@ -336,6 +336,16 @@ export default function OnePager() {
             <h2 className="text-5xl lg:text-6xl font-headline font-extrabold text-primary leading-tight">
               Real-Time Monitoring
             </h2>
+            
+            {/* Waving line animation */}
+            <div className="relative w-64 h-8 overflow-hidden mt-4">
+              <div className="absolute inset-0 flex items-center">
+                <svg className="w-[200%] h-full text-accent opacity-40 animate-wave" viewBox="0 0 1200 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M0 20C150 20 150 10 300 10C450 10 450 30 600 30C750 30 750 10 900 10C1050 10 1050 20 1200 20" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                  <path d="M0 20C150 20 150 10 300 10C450 10 450 30 600 30C750 30 750 10 900 10C1050 10 1050 20 1200 20" stroke="currentColor" strokeWidth="4" strokeLinecap="round" transform="translate(1200, 0)" />
+                </svg>
+              </div>
+            </div>
           </div>
         </section>
 
