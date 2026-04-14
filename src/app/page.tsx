@@ -81,6 +81,7 @@ export default function OnePager() {
   const [solution2TimeLeft, setSolution2TimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
+    // Avoid hydration mismatch by setting dynamic values on mount
     setCamTimestamp(Date.now());
     setCurrentYear(new Date().getFullYear());
     setQuoteIndex(Math.floor(Math.random() * LETTUCE_QUOTES.length));
@@ -325,6 +326,7 @@ export default function OnePager() {
       </header>
 
       <main className="flex-1">
+        {/* Hero Section */}
         <section className="relative w-full max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
           <div className="space-y-6 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full text-accent text-[10px] font-bold uppercase tracking-widest border border-accent/20">
@@ -337,6 +339,7 @@ export default function OnePager() {
           </div>
         </section>
 
+        {/* Vision Section */}
         <section id="vision" className="py-12 bg-background">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-10 bg-white rounded-[3rem] border border-muted shadow-2xl relative overflow-hidden">
@@ -358,6 +361,7 @@ export default function OnePager() {
                   </div>
                 </div>
 
+                {/* Camera Feeds Grid */}
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h4 className="text-lg font-bold text-primary flex items-center gap-2">
@@ -399,6 +403,7 @@ export default function OnePager() {
                   </div>
                 </div>
                 
+                {/* Sensor Metrics */}
                 <div id="hub" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -441,6 +446,7 @@ export default function OnePager() {
                   </div>
                 </div>
 
+                {/* Grower's Wisdom & System Controller Hub */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                   <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center">
                     <div className="bg-primary/10 p-4 rounded-full mb-6">
@@ -449,8 +455,11 @@ export default function OnePager() {
                     <h3 className="font-headline font-bold text-primary mb-4 text-lg uppercase tracking-widest">
                       Grower's Wisdom
                     </h3>
-                    <div className="relative min-h-[100px] flex items-center justify-center">
-                      <p className="text-primary/80 font-medium italic text-lg leading-relaxed px-4 transition-opacity duration-500 animate-in fade-in">
+                    <div className="relative min-h-[100px] flex items-center justify-center overflow-hidden">
+                      <p 
+                        key={quoteIndex}
+                        className="text-primary/80 font-medium italic text-lg leading-relaxed px-4 animate-in fade-in slide-in-from-right-8 duration-700"
+                      >
                         "{LETTUCE_QUOTES[quoteIndex]}"
                       </p>
                     </div>
@@ -469,6 +478,7 @@ export default function OnePager() {
                       </h3>
                     </div>
 
+                    {/* Pump Controls Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[1, 2, 3].map((num) => {
                         const id = num as 1 | 2 | 3;
@@ -491,6 +501,7 @@ export default function OnePager() {
                       })}
                     </div>
 
+                    {/* Heater and Sprinkler Controls Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
@@ -521,6 +532,7 @@ export default function OnePager() {
                       </div>
                     </div>
 
+                    {/* Solutions Controls Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
@@ -551,6 +563,7 @@ export default function OnePager() {
                       </div>
                     </div>
 
+                    {/* Master Switch */}
                     <Button 
                       onClick={() => toggleAllPumps(allPumpsOn ? 'off' : 'on')}
                       className={`w-full h-12 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${allPumpsOn ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
@@ -566,6 +579,7 @@ export default function OnePager() {
         </section>
       </main>
 
+      {/* Footer */}
       <footer className="w-full py-12 bg-white border-t border-muted/50">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-3">
