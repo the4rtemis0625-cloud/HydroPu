@@ -395,7 +395,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${heater ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <Flame className="w-3 h-3 mr-2" />
-                          {heater ? 'HEATING' : 'IDLE'}
+                          {heater ? 'ON' : 'OFF'}
                         </Button>
                       </div>
 
@@ -409,7 +409,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${sprinkler ? 'bg-blue-400 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <CloudRain className="w-3 h-3 mr-2" />
-                          {sprinkler ? 'ACTIVE' : 'OFF'}
+                          {sprinkler ? 'ON' : 'OFF'}
                         </Button>
                       </div>
                     </div>
@@ -425,7 +425,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution1 ? 'ACTIVE' : 'IDLE'}
+                          {solution1 ? 'ON' : 'OFF'}
                         </Button>
                       </div>
 
@@ -439,7 +439,7 @@ export default function OnePager() {
                           className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}
                         >
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution2 ? 'ACTIVE' : 'IDLE'}
+                          {solution2 ? 'ON' : 'OFF'}
                         </Button>
                       </div>
                     </div>
