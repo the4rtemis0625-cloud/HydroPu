@@ -151,6 +151,12 @@ export default function OnePager() {
     setCamTimestamp(Date.now());
   };
 
+  const handleTriggerCapture = () => {
+    if (!rtdb) return;
+    // Send a timestamp to trigger hardware capture
+    set(ref(rtdb, 'settings/triggerCapture'), Date.now());
+  };
+
   const allPumpsOn = pumps.pump1 && pumps.pump2 && pumps.pump3;
 
   return (
@@ -226,10 +232,16 @@ export default function OnePager() {
                       <Camera className="w-5 h-5 text-accent" />
                       Latest Capture
                     </h4>
-                    <Button onClick={refreshCamera} variant="ghost" size="sm" className="text-xs gap-2">
-                      <RefreshCw className="w-3 h-3" />
-                      Refresh Feed
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10">
+                        <Camera className="w-3 h-3" />
+                        Trigger Capture
+                      </Button>
+                      <Button onClick={refreshCamera} variant="ghost" size="sm" className="text-xs gap-2">
+                        <RefreshCw className="w-3 h-3" />
+                        Refresh View
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
