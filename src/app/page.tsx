@@ -283,10 +283,6 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/pump3Status'), targetStatus);
   };
 
-  const refreshCamera = () => {
-    setCamTimestamp(Date.now());
-  };
-
   const handleTriggerCapture = () => {
     if (!rtdb) return;
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
@@ -541,10 +537,6 @@ export default function OnePager() {
                       <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10">
                         <Camera className="w-3 h-3" />
                         Trigger Capture
-                      </Button>
-                      <Button onClick={refreshCamera} variant="ghost" size="sm" className="text-xs gap-2">
-                        <RefreshCw className="w-3 h-3" />
-                        Refresh View
                       </Button>
                     </div>
                   </div>
