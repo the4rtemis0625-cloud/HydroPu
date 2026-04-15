@@ -148,8 +148,8 @@ export default function OnePager() {
       if (!isOn) setSprinklerTimeLeft(null);
     });
 
-    const sol1Ref = ref(rtdb, 'settings/solution1Status');
-    const unsubscribeSol1 = onValue(sol1Ref, (snapshot) => {
+    const sign1Ref = ref(rtdb, 'settings/solution1Status');
+    const unsubscribeSol1 = onValue(sign1Ref, (snapshot) => {
       const isOn = snapshot.val() === 'on';
       setSolution1(isOn);
       if (!isOn) setSolution1TimeLeft(null);
@@ -338,25 +338,6 @@ export default function OnePager() {
             <h2 className="text-5xl lg:text-6xl font-headline font-extrabold text-primary leading-tight">
               Real-Time Monitoring
             </h2>
-
-            {/* Featured Image display */}
-            <div className="mt-8 w-full max-w-4xl aspect-video relative rounded-[2.5rem] overflow-hidden border border-muted shadow-2xl bg-black group">
-              <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Featured Stream: Primary Feed</span>
-              </div>
-              {camTimestamp !== null ? (
-                <Image 
-                  src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam6.jpg?t=${camTimestamp}`}
-                  alt="Main Hydroponic Feed"
-                  fill
-                  className="object-cover transition-transform group-hover:scale-[1.02] duration-700"
-                  unoptimized
-                />
-              ) : (
-                <div className="w-full h-full bg-muted animate-pulse" />
-              )}
-            </div>
           </div>
         </section>
 
