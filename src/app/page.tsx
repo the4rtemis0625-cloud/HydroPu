@@ -81,13 +81,11 @@ export default function OnePager() {
   const [solution2TimeLeft, setSolution2TimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    // Avoid hydration mismatch by setting dynamic values on mount
     setCamTimestamp(Date.now());
     setCurrentYear(new Date().getFullYear());
     setQuoteIndex(Math.floor(Math.random() * LETTUCE_QUOTES.length));
   }, []);
 
-  // Quote Slideshow Interval
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIndex((prev) => (prev + 1) % LETTUCE_QUOTES.length);
@@ -168,7 +166,6 @@ export default function OnePager() {
     };
   }, [rtdb]);
 
-  // Heater Countdown Logic
   useEffect(() => {
     if (heaterTimeLeft === null) return;
     if (heaterTimeLeft <= 0) {
@@ -180,7 +177,6 @@ export default function OnePager() {
     return () => clearTimeout(timer);
   }, [heaterTimeLeft, rtdb]);
 
-  // Sprinkler Countdown Logic
   useEffect(() => {
     if (sprinklerTimeLeft === null) return;
     if (sprinklerTimeLeft <= 0) {
@@ -192,7 +188,6 @@ export default function OnePager() {
     return () => clearTimeout(timer);
   }, [sprinklerTimeLeft, rtdb]);
 
-  // Solution 1 Countdown Logic
   useEffect(() => {
     if (solution1TimeLeft === null) return;
     if (solution1TimeLeft <= 0) {
@@ -204,7 +199,6 @@ export default function OnePager() {
     return () => clearTimeout(timer);
   }, [solution1TimeLeft, rtdb]);
 
-  // Solution 2 Countdown Logic
   useEffect(() => {
     if (solution2TimeLeft === null) return;
     if (solution2TimeLeft <= 0) {
@@ -336,10 +330,26 @@ export default function OnePager() {
             <h2 className="text-5xl lg:text-6xl font-headline font-extrabold text-primary leading-tight">
               Real-Time Monitoring
             </h2>
+            
+            {/* Featured Live Stream Display */}
+            <div className="mt-12 relative w-full max-w-4xl aspect-video rounded-[3rem] overflow-hidden border border-muted shadow-2xl bg-black group transition-all hover:scale-[1.01]">
+              <div className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Live Viewport Hub</span>
+              </div>
+              <Image 
+                src="https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam3.jpg"
+                alt="Live Hydroponics System Feed"
+                fill
+                className="object-cover"
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            </div>
           </div>
         </section>
 
-        {/* Vision Section moved to the bottom part of main content area */}
+        {/* Vision Section */}
         <section id="vision" className="py-12 bg-background">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-10 bg-white rounded-[3rem] border border-muted shadow-2xl relative overflow-hidden">
@@ -436,7 +446,6 @@ export default function OnePager() {
                       </h3>
                     </div>
 
-                    {/* Pump Controls Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[1, 2, 3].map((num) => {
                         const id = num as 1 | 2 | 3;
@@ -459,7 +468,6 @@ export default function OnePager() {
                       })}
                     </div>
 
-                    {/* Heater and Sprinkler Controls Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
@@ -490,7 +498,6 @@ export default function OnePager() {
                       </div>
                     </div>
 
-                    {/* Solutions Controls Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
@@ -521,7 +528,6 @@ export default function OnePager() {
                       </div>
                     </div>
 
-                    {/* Master Switch */}
                     <Button 
                       onClick={() => toggleAllPumps(allPumpsOn ? 'off' : 'on')}
                       className={`w-full h-12 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${allPumpsOn ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
@@ -532,7 +538,7 @@ export default function OnePager() {
                   </div>
                 </div>
 
-                {/* Camera Feeds Grid - MOVED TO THE BOTTOM */}
+                {/* Camera Feeds Grid */}
                 <div className="space-y-6 pt-8 border-t border-muted">
                   <div className="flex items-center justify-between">
                     <h4 className="text-lg font-bold text-primary flex items-center gap-2">
