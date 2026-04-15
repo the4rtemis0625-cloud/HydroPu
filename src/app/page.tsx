@@ -86,6 +86,14 @@ export default function OnePager() {
     setQuoteIndex(Math.floor(Math.random() * LETTUCE_QUOTES.length));
   }, []);
 
+  // Auto-refresh camera feeds every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCamTimestamp(Date.now());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIndex((prev) => (prev + 1) % LETTUCE_QUOTES.length);
