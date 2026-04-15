@@ -330,22 +330,6 @@ export default function OnePager() {
             <h2 className="text-5xl lg:text-6xl font-headline font-extrabold text-primary leading-tight">
               Real-Time Monitoring
             </h2>
-            
-            {/* Featured Live Stream Display */}
-            <div className="mt-12 relative w-full max-w-4xl aspect-video rounded-[3rem] overflow-hidden border border-muted shadow-2xl bg-black group transition-all hover:scale-[1.01]">
-              <div className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider">Live Viewport Hub</span>
-              </div>
-              <Image 
-                src="https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam4.jpg"
-                alt="Live Hydroponics System Feed"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </div>
           </div>
         </section>
 
