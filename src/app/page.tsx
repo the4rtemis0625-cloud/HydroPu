@@ -338,7 +338,7 @@ export default function OnePager() {
                 <span className="text-xs font-bold text-white uppercase tracking-wider">Live Viewport Hub</span>
               </div>
               <Image 
-                src="https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam3.jpg"
+                src="https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam4.jpg"
                 alt="Live Hydroponics System Feed"
                 fill
                 className="object-cover"
