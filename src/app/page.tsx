@@ -248,7 +248,7 @@ export default function OnePager() {
       return;
     }
     const timer = setTimeout(() => setSprinklerTimeLeft(sprinklerTimeLeft - 1), 1000);
-    return () => clearTimeout(timer);
+    return () => clearInterval(timer);
   }, [sprinklerTimeLeft, rtdb]);
 
   useEffect(() => {
@@ -259,7 +259,7 @@ export default function OnePager() {
       return;
     }
     const timer = setTimeout(() => setSolution1TimeLeft(solution1TimeLeft - 1), 1000);
-    return () => clearTimeout(timer);
+    return () => clearInterval(timer);
   }, [solution1TimeLeft, rtdb]);
 
   useEffect(() => {
@@ -270,7 +270,7 @@ export default function OnePager() {
       return;
     }
     const timer = setTimeout(() => setSolution2TimeLeft(solution2TimeLeft - 1), 1000);
-    return () => clearTimeout(timer);
+    return () => clearInterval(timer);
   }, [solution2TimeLeft, rtdb]);
 
   const handleConnect = () => {
@@ -374,7 +374,10 @@ export default function OnePager() {
 
   const handleTriggerCapture = () => {
     if (!rtdb) return;
+    // Set a timestamp trigger
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
+    // Record that camera was turned on
+    set(ref(rtdb, 'settings/cameraStatus'), 'camera turned on');
   };
 
   const formatTime = (seconds: number) => {
@@ -552,7 +555,7 @@ export default function OnePager() {
                       })}
                     </div>
 
-                    {/* NEW: Pump Cycle Logic Section */}
+                    {/* Pump Cycle Logic Section */}
                     <div className="bg-white/40 p-5 rounded-2xl border border-primary/10 space-y-5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -740,4 +743,3 @@ export default function OnePager() {
     </div>
   );
 }
-
