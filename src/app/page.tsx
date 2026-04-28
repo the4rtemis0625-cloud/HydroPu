@@ -1,8 +1,10 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { 
   Waves, 
   FlaskConical, 
@@ -21,7 +23,10 @@ import {
   Flame,
   CloudRain,
   Beaker,
-  Leaf
+  Leaf,
+  Clock,
+  Timer,
+  Settings2
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -74,7 +79,14 @@ export default function OnePager() {
   const [solution2, setSolution2] = useState(false);
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
-  // Timer states
+  // Pump Cycle States
+  const [isCycleActive, setIsCycleActive] = useState(false);
+  const [cycleOnMinutes, setCycleOnMinutes] = useState(2);
+  const [cycleOffMinutes, setCycleOffMinutes] = useState(1);
+  const [cyclePhase, setCyclePhase] = useState<'on' | 'off'>('on');
+  const [cycleSecondsRemaining, setCycleSecondsRemaining] = useState(0);
+
+  // Timer states for manual overrides
   const [heaterTimeLeft, setHeaterTimeLeft] = useState<number | null>(null);
   const [sprinklerTimeLeft, setSprinklerTimeLeft] = useState<number | null>(null);
   const [solution1TimeLeft, setSolution1TimeLeft] = useState<number | null>(null);
@@ -119,6 +131,7 @@ export default function OnePager() {
       }
     });
 
+    // Listen to pump statuses
     const pump1Ref = ref(rtdb, 'settings/pump1Status');
     const unsubscribePump1 = onValue(pump1Ref, (snapshot) => {
       setPumps(prev => ({ ...prev, pump1: snapshot.val() === 'on' }));
@@ -132,6 +145,17 @@ export default function OnePager() {
     const pump3Ref = ref(rtdb, 'settings/pump3Status');
     const unsubscribePump3 = onValue(pump3Ref, (snapshot) => {
       setPumps(prev => ({ ...prev, pump3: snapshot.val() === 'on' }));
+    });
+
+    // Listen to cycle settings
+    const cycleRef = ref(rtdb, 'settings/pumpCycle');
+    const unsubscribeCycle = onValue(cycleRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setIsCycleActive(data.active || false);
+        setCycleOnMinutes(data.onMinutes || 2);
+        setCycleOffMinutes(data.offMinutes || 1);
+      }
     });
 
     const heaterRef = ref(rtdb, 'settings/heaterStatus');
@@ -167,6 +191,7 @@ export default function OnePager() {
       unsubscribePump1();
       unsubscribePump2();
       unsubscribePump3();
+      unsubscribeCycle();
       unsubscribeHeater();
       unsubscribeSprinkler();
       unsubscribeSol1();
@@ -174,6 +199,36 @@ export default function OnePager() {
     };
   }, [rtdb]);
 
+  // Pump Cycle Logic Execution
+  useEffect(() => {
+    if (!isCycleActive || !rtdb) {
+      setCycleSecondsRemaining(0);
+      return;
+    }
+
+    if (cycleSecondsRemaining <= 0) {
+      // Switch phase
+      const nextPhase = cyclePhase === 'on' ? 'off' : 'on';
+      setCyclePhase(nextPhase);
+      
+      const nextDurationMinutes = nextPhase === 'on' ? cycleOnMinutes : cycleOffMinutes;
+      setCycleSecondsRemaining(nextDurationMinutes * 60);
+
+      // Trigger actual pumps
+      const statusValue = nextPhase;
+      set(ref(rtdb, 'settings/pump1Status'), statusValue);
+      set(ref(rtdb, 'settings/pump2Status'), statusValue);
+      set(ref(rtdb, 'settings/pump3Status'), statusValue);
+    }
+
+    const timer = setInterval(() => {
+      setCycleSecondsRemaining(prev => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isCycleActive, cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
+
+  // Manual timer countdowns
   useEffect(() => {
     if (heaterTimeLeft === null) return;
     if (heaterTimeLeft <= 0) {
@@ -226,10 +281,43 @@ export default function OnePager() {
 
   const togglePump = (pumpId: 1 | 2 | 3) => {
     if (!rtdb) return;
+    // Manual toggle disables automated cycle for safety
+    if (isCycleActive) {
+      toggleCycle(false);
+    }
     const pumpRef = ref(rtdb, `settings/pump${pumpId}Status`);
     const pumpKey = `pump${pumpId}` as keyof PumpStates;
     const nextStatus = pumps[pumpKey] ? 'off' : 'on';
     set(pumpRef, nextStatus);
+  };
+
+  const toggleCycle = (targetState?: boolean) => {
+    if (!rtdb) return;
+    const nextActive = targetState !== undefined ? targetState : !isCycleActive;
+    set(ref(rtdb, 'settings/pumpCycle'), {
+      active: nextActive,
+      onMinutes: cycleOnMinutes,
+      offMinutes: cycleOffMinutes
+    });
+    // If turning on, reset phase to 'on' and timer
+    if (nextActive) {
+      setCyclePhase('on');
+      setCycleSecondsRemaining(cycleOnMinutes * 60);
+      set(ref(rtdb, 'settings/pump1Status'), 'on');
+      set(ref(rtdb, 'settings/pump2Status'), 'on');
+      set(ref(rtdb, 'settings/pump3Status'), 'on');
+    }
+  };
+
+  const updateCycleTimes = (on: number, off: number) => {
+    if (!rtdb) return;
+    setCycleOnMinutes(on);
+    setCycleOffMinutes(off);
+    set(ref(rtdb, 'settings/pumpCycle'), {
+      active: isCycleActive,
+      onMinutes: on,
+      offMinutes: off
+    });
   };
 
   const toggleHeater = () => {
@@ -278,6 +366,7 @@ export default function OnePager() {
 
   const toggleAllPumps = (targetStatus: 'on' | 'off') => {
     if (!rtdb) return;
+    if (isCycleActive) toggleCycle(false);
     set(ref(rtdb, 'settings/pump1Status'), targetStatus);
     set(ref(rtdb, 'settings/pump2Status'), targetStatus);
     set(ref(rtdb, 'settings/pump3Status'), targetStatus);
@@ -286,6 +375,12 @@ export default function OnePager() {
   const handleTriggerCapture = () => {
     if (!rtdb) return;
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const allPumpsOn = pumps.pump1 && pumps.pump2 && pumps.pump3;
@@ -403,8 +498,8 @@ export default function OnePager() {
                 </div>
 
                 {/* Grower's Wisdom & System Controller Hub */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                  <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                  <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center h-full">
                     <div className="bg-primary/10 p-4 rounded-full mb-6 animate-pulse">
                       <Leaf className="w-10 h-10 text-primary" />
                     </div>
@@ -429,11 +524,12 @@ export default function OnePager() {
                   <div id="controls" className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-6">
                     <div className="flex items-center justify-between border-b border-primary/10 pb-4">
                       <h3 className="font-headline font-bold text-primary flex items-center gap-2 text-sm">
-                        <RotateCcw className="w-5 h-5 text-accent" />
+                        <Settings2 className="w-5 h-5 text-accent" />
                         System Controller Hub
                       </h3>
                     </div>
 
+                    {/* Manual Pump Controls */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[1, 2, 3].map((num) => {
                         const id = num as 1 | 2 | 3;
@@ -456,6 +552,62 @@ export default function OnePager() {
                       })}
                     </div>
 
+                    {/* NEW: Pump Cycle Logic Section */}
+                    <div className="bg-white/40 p-5 rounded-2xl border border-primary/10 space-y-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <RotateCcw className={`w-4 h-4 ${isCycleActive ? 'text-accent animate-spin-slow' : 'text-muted-foreground'}`} />
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Pump Cycle Logic</span>
+                        </div>
+                        {isCycleActive && (
+                          <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/20 rounded-full">
+                            <Clock className="w-3 h-3 text-accent" />
+                            <span className="text-[9px] font-bold text-accent uppercase">{cyclePhase}: {formatTime(cycleSecondsRemaining)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
+                            <span>ON Time</span>
+                            <span className="text-primary">{cycleOnMinutes} min</span>
+                          </div>
+                          <Slider 
+                            value={[cycleOnMinutes]} 
+                            max={30} 
+                            min={1} 
+                            step={1} 
+                            onValueChange={(val) => updateCycleTimes(val[0], cycleOffMinutes)}
+                            className="text-accent"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
+                            <span>OFF Time</span>
+                            <span className="text-primary">{cycleOffMinutes} min</span>
+                          </div>
+                          <Slider 
+                            value={[cycleOffMinutes]} 
+                            max={30} 
+                            min={1} 
+                            step={1} 
+                            onValueChange={(val) => updateCycleTimes(cycleOnMinutes, val[0])}
+                          />
+                        </div>
+                      </div>
+
+                      <Button 
+                        onClick={() => toggleCycle()}
+                        variant={isCycleActive ? "destructive" : "default"}
+                        className={`w-full h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg ${!isCycleActive && 'bg-primary hover:bg-primary/90'}`}
+                      >
+                        {isCycleActive ? <Timer className="w-4 h-4 mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                        {isCycleActive ? 'Stop Automated Cycle' : 'Activate Cycle Logic'}
+                      </Button>
+                    </div>
+
+                    {/* Environment Controls */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
@@ -486,6 +638,7 @@ export default function OnePager() {
                       </div>
                     </div>
 
+                    {/* Nutrient Solutions */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
@@ -587,3 +740,4 @@ export default function OnePager() {
     </div>
   );
 }
+
