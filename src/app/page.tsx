@@ -356,7 +356,11 @@ export default function OnePager() {
   const handleTriggerCapture = () => {
     if (!rtdb) return;
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
-    set(ref(rtdb, 'settings/cameraStatus'), 'camera turned on');
+    set(ref(rtdb, 'settings/cameraStatus'), 'capture');
+    
+    setTimeout(() => {
+      set(ref(rtdb, 'settings/cameraStatus'), 'idle');
+    }, 10000);
   };
 
   const formatTime = (seconds: number) => {
