@@ -271,7 +271,7 @@ export default function OnePager() {
       return;
     }
     const timer = setTimeout(() => setSprinklerTimeLeft(sprinklerTimeLeft - 1), 1000);
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [sprinklerTimeLeft, rtdb]);
 
   useEffect(() => {
@@ -282,7 +282,7 @@ export default function OnePager() {
       return;
     }
     const timer = setTimeout(() => setSolution1TimeLeft(solution1TimeLeft - 1), 1000);
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [solution1TimeLeft, rtdb]);
 
   useEffect(() => {
@@ -293,7 +293,7 @@ export default function OnePager() {
       return;
     }
     const timer = setTimeout(() => setSolution2TimeLeft(solution2TimeLeft - 1), 1000);
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [solution2TimeLeft, rtdb]);
 
   const handleConnect = () => {
@@ -582,6 +582,30 @@ export default function OnePager() {
                         <Button onClick={toggleSprinkler} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${sprinkler ? 'bg-blue-400 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <CloudRain className="w-3 h-3 mr-2" />
                           {sprinkler ? `ON (${sprinklerTimeLeft ?? 0}s)` : 'OFF'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 1</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${solution1 ? 'bg-purple-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button onClick={toggleSolution1} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                          <Beaker className="w-3 h-3 mr-2" />
+                          {solution1 ? `Dosing (${solution1TimeLeft ?? 0}s)` : 'Trigger Solution 1'}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 2</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${solution2 ? 'bg-pink-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button onClick={toggleSolution2} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                          <Beaker className="w-3 h-3 mr-2" />
+                          {solution2 ? `Dosing (${solution2TimeLeft ?? 0}s)` : 'Trigger Solution 2'}
                         </Button>
                       </div>
                     </div>
