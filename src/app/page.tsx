@@ -43,6 +43,12 @@ interface PumpStates {
   pump3: boolean;
 }
 
+interface PumpEnabledStates {
+  p1: boolean;
+  p2: boolean;
+  p3: boolean;
+}
+
 const LETTUCE_QUOTES = [
   "Lettuce is like conversation: it must be fresh and crisp.",
   "Planting a garden is to believe in tomorrow.",
@@ -70,6 +76,12 @@ export default function OnePager() {
     pump2: false,
     pump3: false
   });
+
+  const [pumpEnabled, setPumpEnabled] = useState<PumpEnabledStates>({
+    p1: false,
+    p2: false,
+    p3: false
+  });
   
   const [heater, setHeater] = useState(false);
   const [sprinkler, setSprinkler] = useState(false);
@@ -77,7 +89,7 @@ export default function OnePager() {
   const [solution2, setSolution2] = useState(false);
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
-  // Pump Cycle States (Now always active if rtdb is connected)
+  // Pump Cycle Settings
   const [cycleOnMinutes, setCycleOnMinutes] = useState(2);
   const [cycleOffMinutes, setCycleOffMinutes] = useState(1);
   const [cyclePhase, setCyclePhase] = useState<'on' | 'off'>('on');
@@ -128,23 +140,23 @@ export default function OnePager() {
       }
     });
 
-    // Listen to pump statuses
-    const pump1Ref = ref(rtdb, 'settings/pump1Status');
-    const unsubscribePump1 = onValue(pump1Ref, (snapshot) => {
-      setPumps(prev => ({ ...prev, pump1: snapshot.val() === 'on' }));
-    });
+    // Listen to hardware statuses (what's actually running)
+    const p1StatusRef = ref(rtdb, 'settings/pump1Status');
+    const unsubP1Status = onValue(p1StatusRef, (snapshot) => setPumps(prev => ({ ...prev, pump1: snapshot.val() === 'on' })));
+    const p2StatusRef = ref(rtdb, 'settings/pump2Status');
+    const unsubP2Status = onValue(p2StatusRef, (snapshot) => setPumps(prev => ({ ...prev, pump2: snapshot.val() === 'on' })));
+    const p3StatusRef = ref(rtdb, 'settings/pump3Status');
+    const unsubP3Status = onValue(p3StatusRef, (snapshot) => setPumps(prev => ({ ...prev, pump3: snapshot.val() === 'on' })));
 
-    const pump2Ref = ref(rtdb, 'settings/pump2Status');
-    const unsubscribePump2 = onValue(pump2Ref, (snapshot) => {
-      setPumps(prev => ({ ...prev, pump2: snapshot.val() === 'on' }));
-    });
+    // Listen to cycle enabled toggles
+    const p1EnRef = ref(rtdb, 'settings/pump1Enabled');
+    const unsubP1En = onValue(p1EnRef, (snapshot) => setPumpEnabled(prev => ({ ...prev, p1: snapshot.val() === true })));
+    const p2EnRef = ref(rtdb, 'settings/pump2Enabled');
+    const unsubP2En = onValue(p2EnRef, (snapshot) => setPumpEnabled(prev => ({ ...prev, p2: snapshot.val() === true })));
+    const p3EnRef = ref(rtdb, 'settings/pump3Enabled');
+    const unsubP3En = onValue(p3EnRef, (snapshot) => setPumpEnabled(prev => ({ ...prev, p3: snapshot.val() === true })));
 
-    const pump3Ref = ref(rtdb, 'settings/pump3Status');
-    const unsubscribePump3 = onValue(pump3Ref, (snapshot) => {
-      setPumps(prev => ({ ...prev, pump3: snapshot.val() === 'on' }));
-    });
-
-    // Listen to cycle settings (Removed active flag requirement)
+    // Listen to cycle settings
     const cycleRef = ref(rtdb, 'settings/pumpCycle');
     const unsubscribeCycle = onValue(cycleRef, (snapshot) => {
       const data = snapshot.val();
@@ -184,9 +196,12 @@ export default function OnePager() {
 
     return () => {
       unsubscribeSensors();
-      unsubscribePump1();
-      unsubscribePump2();
-      unsubscribePump3();
+      unsubP1Status();
+      unsubP2Status();
+      unsubP3Status();
+      unsubP1En();
+      unsubP2En();
+      unsubP3En();
       unsubscribeCycle();
       unsubscribeHeater();
       unsubscribeSprinkler();
@@ -195,26 +210,24 @@ export default function OnePager() {
     };
   }, [rtdb]);
 
-  // Pump Cycle Logic Execution (Always running)
+  const anyEnabled = pumpEnabled.p1 || pumpEnabled.p2 || pumpEnabled.p3;
+
+  // Pump Cycle Execution (Shared clock, but only counting if someone is enabled)
   useEffect(() => {
-    if (!rtdb) {
-      setCycleSecondsRemaining(0);
+    if (!rtdb) return;
+
+    if (!anyEnabled) {
+      // Reset cycle when no pumps are active
+      setCyclePhase('on');
+      setCycleSecondsRemaining(cycleOnMinutes * 60);
       return;
     }
 
     if (cycleSecondsRemaining <= 0) {
-      // Switch phase
       const nextPhase = cyclePhase === 'on' ? 'off' : 'on';
       setCyclePhase(nextPhase);
-      
-      const nextDurationMinutes = nextPhase === 'on' ? cycleOnMinutes : cycleOffMinutes;
-      setCycleSecondsRemaining(nextDurationMinutes * 60);
-
-      // Trigger actual pumps
-      const statusValue = nextPhase;
-      set(ref(rtdb, 'settings/pump1Status'), statusValue);
-      set(ref(rtdb, 'settings/pump2Status'), statusValue);
-      set(ref(rtdb, 'settings/pump3Status'), statusValue);
+      const nextDuration = nextPhase === 'on' ? cycleOnMinutes : cycleOffMinutes;
+      setCycleSecondsRemaining(nextDuration * 60);
     }
 
     const timer = setInterval(() => {
@@ -222,7 +235,21 @@ export default function OnePager() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
+  }, [anyEnabled, cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
+
+  // Sync Hardware Status based on Cycle Phase and individual Enable flags
+  useEffect(() => {
+    if (!rtdb) return;
+
+    const syncPump = (num: 1|2|3, isEnabled: boolean) => {
+      const targetStatus = (isEnabled && cyclePhase === 'on') ? 'on' : 'off';
+      set(ref(rtdb, `settings/pump${num}Status`), targetStatus);
+    };
+
+    syncPump(1, pumpEnabled.p1);
+    syncPump(2, pumpEnabled.p2);
+    syncPump(3, pumpEnabled.p3);
+  }, [pumpEnabled, cyclePhase, rtdb]);
 
   // Manual timer countdowns
   useEffect(() => {
@@ -270,78 +297,60 @@ export default function OnePager() {
   }, [solution2TimeLeft, rtdb]);
 
   const handleConnect = () => {
-    if (auth) {
-      initiateAnonymousSignIn(auth);
-    }
+    if (auth) initiateAnonymousSignIn(auth);
   };
 
   const togglePump = (pumpId: 1 | 2 | 3) => {
     if (!rtdb) return;
-    const pumpRef = ref(rtdb, `settings/pump${pumpId}Status`);
-    const pumpKey = `pump${pumpId}` as keyof PumpStates;
-    const nextStatus = pumps[pumpKey] ? 'off' : 'on';
-    set(pumpRef, nextStatus);
+    const key = `p${pumpId}` as keyof PumpEnabledStates;
+    const nextStatus = !pumpEnabled[key];
+    set(ref(rtdb, `settings/pump${pumpId}Enabled`), nextStatus);
   };
 
   const updateCycleTimes = (on: number, off: number) => {
     if (!rtdb) return;
     setCycleOnMinutes(on);
     setCycleOffMinutes(off);
-    set(ref(rtdb, 'settings/pumpCycle'), {
-      onMinutes: on,
-      offMinutes: off
-    });
+    set(ref(rtdb, 'settings/pumpCycle'), { onMinutes: on, offMinutes: off });
   };
 
   const toggleHeater = () => {
     if (!rtdb) return;
     const nextStatus = heater ? 'off' : 'on';
     set(ref(rtdb, 'settings/heaterStatus'), nextStatus);
-    if (nextStatus === 'on') {
-      setHeaterTimeLeft(30);
-    } else {
-      setHeaterTimeLeft(null);
-    }
+    if (nextStatus === 'on') setHeaterTimeLeft(30);
+    else setHeaterTimeLeft(null);
   };
 
   const toggleSprinkler = () => {
     if (!rtdb) return;
     const nextStatus = sprinkler ? 'off' : 'on';
     set(ref(rtdb, 'settings/sprinklerStatus'), nextStatus);
-    if (nextStatus === 'on') {
-      setSprinklerTimeLeft(30);
-    } else {
-      setSprinklerTimeLeft(null);
-    }
+    if (nextStatus === 'on') setSprinklerTimeLeft(30);
+    else setSprinklerTimeLeft(null);
   };
 
   const toggleSolution1 = () => {
     if (!rtdb) return;
     const nextStatus = solution1 ? 'off' : 'on';
     set(ref(rtdb, 'settings/solution1Status'), nextStatus);
-    if (nextStatus === 'on') {
-      setSolution1TimeLeft(10);
-    } else {
-      setSolution1TimeLeft(null);
-    }
+    if (nextStatus === 'on') setSolution1TimeLeft(10);
+    else setSolution1TimeLeft(null);
   };
 
   const toggleSolution2 = () => {
     if (!rtdb) return;
     const nextStatus = solution2 ? 'off' : 'on';
     set(ref(rtdb, 'settings/solution2Status'), nextStatus);
-    if (nextStatus === 'on') {
-      setSolution2TimeLeft(10);
-    } else {
-      setSolution2TimeLeft(null);
-    }
+    if (nextStatus === 'on') setSolution2TimeLeft(10);
+    else setSolution2TimeLeft(null);
   };
 
-  const toggleAllPumps = (targetStatus: 'on' | 'off') => {
+  const toggleAllPumps = (target: boolean) => {
     if (!rtdb) return;
-    set(ref(rtdb, 'settings/pump1Status'), targetStatus);
-    set(ref(rtdb, 'settings/pump2Status'), targetStatus);
-    set(ref(rtdb, 'settings/pump3Status'), targetStatus);
+    set(ref(rtdb, 'settings/pump1Enabled'), target);
+    set(ref(rtdb, 'settings/pump2Enabled'), target);
+    set(ref(rtdb, 'settings/pump3Enabled'), target);
   };
 
   const handleTriggerCapture = () => {
@@ -356,7 +365,7 @@ export default function OnePager() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const allPumpsOn = pumps.pump1 && pumps.pump2 && pumps.pump3;
+  const allEnabled = pumpEnabled.p1 && pumpEnabled.p2 && pumpEnabled.p3;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-body">
@@ -392,7 +401,6 @@ export default function OnePager() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="relative w-full max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
           <div className="space-y-6 max-w-3xl flex flex-col items-center w-full">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full text-accent text-[10px] font-bold uppercase tracking-widest border border-accent/20">
@@ -405,7 +413,6 @@ export default function OnePager() {
           </div>
         </section>
 
-        {/* Vision Section */}
         <section id="vision" className="py-12 bg-background">
           <div className="max-w-7xl mx-auto px-6">
             <div className="p-10 bg-white rounded-[3rem] border border-muted shadow-2xl relative overflow-hidden">
@@ -427,7 +434,6 @@ export default function OnePager() {
                   </div>
                 </div>
 
-                {/* Sensor Metrics */}
                 <div id="hub" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -470,7 +476,6 @@ export default function OnePager() {
                   </div>
                 </div>
 
-                {/* Grower's Wisdom & System Controller Hub */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
                   <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center h-full">
                     <div className="bg-primary/10 p-4 rounded-full mb-6 animate-pulse">
@@ -487,11 +492,6 @@ export default function OnePager() {
                         "{LETTUCE_QUOTES[quoteIndex]}"
                       </p>
                     </div>
-                    <div className="mt-6 flex items-center justify-center gap-2">
-                      <div className="w-8 h-px bg-primary/20" />
-                      <span className="text-[10px] font-bold text-primary/40 uppercase tracking-tighter">HydroPu Planting Guide</span>
-                      <div className="w-8 h-px bg-primary/20" />
-                    </div>
                   </div>
                   
                   <div id="controls" className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-6">
@@ -502,39 +502,44 @@ export default function OnePager() {
                       </h3>
                     </div>
 
-                    {/* Manual Pump Controls */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[1, 2, 3].map((num) => {
                         const id = num as 1 | 2 | 3;
-                        const isOn = pumps[`pump${id}` as keyof PumpStates];
+                        const key = `p${id}` as keyof PumpEnabledStates;
+                        const isEnabled = pumpEnabled[key];
+                        const isActuallyRunning = pumps[`pump${id}` as keyof PumpStates];
                         return (
                           <div key={id} className="space-y-2">
                             <div className="flex items-center justify-between px-1">
                               <span className="text-[10px] font-bold text-muted-foreground uppercase">Pump {id}</span>
-                              <div className={`w-1.5 h-1.5 rounded-full ${isOn ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
+                              <div className={`w-1.5 h-1.5 rounded-full ${isActuallyRunning ? 'bg-accent' : 'bg-muted-foreground/30'}`} />
                             </div>
                             <Button 
                               onClick={() => togglePump(id)}
-                              className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${isOn ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}
+                              className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${isEnabled ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}
                             >
                               <Power className="w-3 h-3 mr-2" />
-                              {isOn ? 'ON' : 'OFF'}
+                              {isEnabled ? 'ON' : 'OFF'}
                             </Button>
+                            <div className="text-[8px] text-center font-bold text-muted-foreground uppercase">
+                              {isActuallyRunning ? 'Spraying...' : 'Resting'}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* Pump Cycle Logic Section (Always Automated) */}
                     <div className="bg-white/40 p-5 rounded-2xl border border-primary/10 space-y-5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <RotateCcw className="w-4 h-4 text-accent animate-spin-slow" />
-                          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Automated Cycle Status</span>
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Cycle Timer</span>
                         </div>
                         <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/20 rounded-full">
                           <Clock className="w-3 h-3 text-accent" />
-                          <span className="text-[9px] font-bold text-accent uppercase">{cyclePhase}: {formatTime(cycleSecondsRemaining)}</span>
+                          <span className="text-[9px] font-bold text-accent uppercase">
+                            {anyEnabled ? `${cyclePhase}: ${formatTime(cycleSecondsRemaining)}` : 'Paused'}
+                          </span>
                         </div>
                       </div>
 
@@ -544,43 +549,26 @@ export default function OnePager() {
                             <span>ON Time</span>
                             <span className="text-primary">{cycleOnMinutes} min</span>
                           </div>
-                          <Slider 
-                            value={[cycleOnMinutes]} 
-                            max={30} 
-                            min={1} 
-                            step={1} 
-                            onValueChange={(val) => updateCycleTimes(val[0], cycleOffMinutes)}
-                            className="text-accent"
-                          />
+                          <Slider value={[cycleOnMinutes]} max={30} min={1} step={1} onValueChange={(val) => updateCycleTimes(val[0], cycleOffMinutes)} />
                         </div>
                         <div className="space-y-3">
                           <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
                             <span>OFF Time</span>
                             <span className="text-primary">{cycleOffMinutes} min</span>
                           </div>
-                          <Slider 
-                            value={[cycleOffMinutes]} 
-                            max={30} 
-                            min={1} 
-                            step={1} 
-                            onValueChange={(val) => updateCycleTimes(cycleOnMinutes, val[0])}
-                          />
+                          <Slider value={[cycleOffMinutes]} max={30} min={1} step={1} onValueChange={(val) => updateCycleTimes(cycleOnMinutes, val[0])} />
                         </div>
                       </div>
-                      <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-tighter">Cycle logic is automatically applied to all pumps</p>
+                      <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-tighter">Cycle only counts when at least one pump is ON</p>
                     </div>
 
-                    {/* Environment Controls */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
                           <span className="text-[10px] font-bold text-muted-foreground uppercase">Heater</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${heater ? 'bg-orange-500' : 'bg-muted-foreground/30'}`} />
                         </div>
-                        <Button 
-                          onClick={toggleHeater}
-                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${heater ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'}`}
-                        >
+                        <Button onClick={toggleHeater} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${heater ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Flame className="w-3 h-3 mr-2" />
                           {heater ? `ON (${heaterTimeLeft ?? 0}s)` : 'OFF'}
                         </Button>
@@ -591,70 +579,33 @@ export default function OnePager() {
                           <span className="text-[10px] font-bold text-muted-foreground uppercase">Sprinkler</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${sprinkler ? 'bg-blue-400' : 'bg-muted-foreground/30'}`} />
                         </div>
-                        <Button 
-                          onClick={toggleSprinkler}
-                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${sprinkler ? 'bg-blue-400 text-white' : 'bg-muted text-muted-foreground'}`}
-                        >
+                        <Button onClick={toggleSprinkler} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${sprinkler ? 'bg-blue-400 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <CloudRain className="w-3 h-3 mr-2" />
                           {sprinkler ? `ON (${sprinklerTimeLeft ?? 0}s)` : 'OFF'}
                         </Button>
                       </div>
                     </div>
 
-                    {/* Nutrient Solutions */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 1</span>
-                          <div className={`w-1.5 h-1.5 rounded-full ${solution1 ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
-                        </div>
-                        <Button 
-                          onClick={toggleSolution1}
-                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? `bg-emerald-500 text-white` : 'bg-muted text-muted-foreground'}`}
-                        >
-                          <Beaker className="w-3 h-3 mr-2" />
-                          {solution1 ? `ON (${solution1TimeLeft ?? 0}s)` : 'OFF'}
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 2</span>
-                          <div className={`w-1.5 h-1.5 rounded-full ${solution2 ? 'bg-purple-500' : 'bg-muted-foreground/30'}`} />
-                        </div>
-                        <Button 
-                          onClick={toggleSolution2}
-                          className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? `bg-purple-500 text-white` : 'bg-muted text-muted-foreground'}`}
-                        >
-                          <Beaker className="w-3 h-3 mr-2" />
-                          {solution2 ? `ON (${solution2TimeLeft ?? 0}s)` : 'OFF'}
-                        </Button>
-                      </div>
-                    </div>
-
                     <Button 
-                      onClick={() => toggleAllPumps(allPumpsOn ? 'off' : 'on')}
-                      className={`w-full h-12 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${allPumpsOn ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
+                      onClick={() => toggleAllPumps(!allEnabled)}
+                      className={`w-full h-12 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${allEnabled ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
                     >
-                      {allPumpsOn ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                      {allPumpsOn ? 'Master Kill Switch (OFF)' : 'Activate Full System (ON)'}
+                      {allEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                      {allEnabled ? 'Master Kill Switch (OFF)' : 'Activate Full System (ON)'}
                     </Button>
                   </div>
                 </div>
 
-                {/* Camera Feeds Grid */}
                 <div className="space-y-6 pt-8 border-t border-muted">
                   <div className="flex items-center justify-between">
                     <h4 className="text-lg font-bold text-primary flex items-center gap-2">
                       <Camera className="w-5 h-5 text-accent" />
                       Latest Capture
                     </h4>
-                    <div className="flex items-center gap-2">
-                      <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10">
-                        <Camera className="w-3 h-3" />
-                        Trigger Capture
-                      </Button>
-                    </div>
+                    <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10">
+                      <Camera className="w-3 h-3" />
+                      Trigger Capture
+                    </Button>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -685,7 +636,6 @@ export default function OnePager() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="w-full py-12 bg-white border-t border-muted/50">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-3">
