@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -19,7 +18,6 @@ import {
   ToggleLeft,
   ToggleRight,
   Camera,
-  RefreshCw,
   Flame,
   CloudRain,
   Beaker,
@@ -79,8 +77,7 @@ export default function OnePager() {
   const [solution2, setSolution2] = useState(false);
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
-  // Pump Cycle States
-  const [isCycleActive, setIsCycleActive] = useState(false);
+  // Pump Cycle States (Now always active if rtdb is connected)
   const [cycleOnMinutes, setCycleOnMinutes] = useState(2);
   const [cycleOffMinutes, setCycleOffMinutes] = useState(1);
   const [cyclePhase, setCyclePhase] = useState<'on' | 'off'>('on');
@@ -147,12 +144,11 @@ export default function OnePager() {
       setPumps(prev => ({ ...prev, pump3: snapshot.val() === 'on' }));
     });
 
-    // Listen to cycle settings
+    // Listen to cycle settings (Removed active flag requirement)
     const cycleRef = ref(rtdb, 'settings/pumpCycle');
     const unsubscribeCycle = onValue(cycleRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        setIsCycleActive(data.active || false);
         setCycleOnMinutes(data.onMinutes || 2);
         setCycleOffMinutes(data.offMinutes || 1);
       }
@@ -199,9 +195,9 @@ export default function OnePager() {
     };
   }, [rtdb]);
 
-  // Pump Cycle Logic Execution
+  // Pump Cycle Logic Execution (Always running)
   useEffect(() => {
-    if (!isCycleActive || !rtdb) {
+    if (!rtdb) {
       setCycleSecondsRemaining(0);
       return;
     }
@@ -226,7 +222,7 @@ export default function OnePager() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isCycleActive, cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
+  }, [cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
 
   // Manual timer countdowns
   useEffect(() => {
@@ -281,32 +277,10 @@ export default function OnePager() {
 
   const togglePump = (pumpId: 1 | 2 | 3) => {
     if (!rtdb) return;
-    // Manual toggle disables automated cycle for safety
-    if (isCycleActive) {
-      toggleCycle(false);
-    }
     const pumpRef = ref(rtdb, `settings/pump${pumpId}Status`);
     const pumpKey = `pump${pumpId}` as keyof PumpStates;
     const nextStatus = pumps[pumpKey] ? 'off' : 'on';
     set(pumpRef, nextStatus);
-  };
-
-  const toggleCycle = (targetState?: boolean) => {
-    if (!rtdb) return;
-    const nextActive = targetState !== undefined ? targetState : !isCycleActive;
-    set(ref(rtdb, 'settings/pumpCycle'), {
-      active: nextActive,
-      onMinutes: cycleOnMinutes,
-      offMinutes: cycleOffMinutes
-    });
-    // If turning on, reset phase to 'on' and timer
-    if (nextActive) {
-      setCyclePhase('on');
-      setCycleSecondsRemaining(cycleOnMinutes * 60);
-      set(ref(rtdb, 'settings/pump1Status'), 'on');
-      set(ref(rtdb, 'settings/pump2Status'), 'on');
-      set(ref(rtdb, 'settings/pump3Status'), 'on');
-    }
   };
 
   const updateCycleTimes = (on: number, off: number) => {
@@ -314,7 +288,6 @@ export default function OnePager() {
     setCycleOnMinutes(on);
     setCycleOffMinutes(off);
     set(ref(rtdb, 'settings/pumpCycle'), {
-      active: isCycleActive,
       onMinutes: on,
       offMinutes: off
     });
@@ -366,7 +339,6 @@ export default function OnePager() {
 
   const toggleAllPumps = (targetStatus: 'on' | 'off') => {
     if (!rtdb) return;
-    if (isCycleActive) toggleCycle(false);
     set(ref(rtdb, 'settings/pump1Status'), targetStatus);
     set(ref(rtdb, 'settings/pump2Status'), targetStatus);
     set(ref(rtdb, 'settings/pump3Status'), targetStatus);
@@ -374,9 +346,7 @@ export default function OnePager() {
 
   const handleTriggerCapture = () => {
     if (!rtdb) return;
-    // Set a timestamp trigger
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
-    // Record that camera was turned on
     set(ref(rtdb, 'settings/cameraStatus'), 'camera turned on');
   };
 
@@ -555,19 +525,17 @@ export default function OnePager() {
                       })}
                     </div>
 
-                    {/* Pump Cycle Logic Section */}
+                    {/* Pump Cycle Logic Section (Always Automated) */}
                     <div className="bg-white/40 p-5 rounded-2xl border border-primary/10 space-y-5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <RotateCcw className={`w-4 h-4 ${isCycleActive ? 'text-accent animate-spin-slow' : 'text-muted-foreground'}`} />
-                          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Pump Cycle Logic</span>
+                          <RotateCcw className="w-4 h-4 text-accent animate-spin-slow" />
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Automated Cycle Status</span>
                         </div>
-                        {isCycleActive && (
-                          <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/20 rounded-full">
-                            <Clock className="w-3 h-3 text-accent" />
-                            <span className="text-[9px] font-bold text-accent uppercase">{cyclePhase}: {formatTime(cycleSecondsRemaining)}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/20 rounded-full">
+                          <Clock className="w-3 h-3 text-accent" />
+                          <span className="text-[9px] font-bold text-accent uppercase">{cyclePhase}: {formatTime(cycleSecondsRemaining)}</span>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -599,15 +567,7 @@ export default function OnePager() {
                           />
                         </div>
                       </div>
-
-                      <Button 
-                        onClick={() => toggleCycle()}
-                        variant={isCycleActive ? "destructive" : "default"}
-                        className={`w-full h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg ${!isCycleActive && 'bg-primary hover:bg-primary/90'}`}
-                      >
-                        {isCycleActive ? <Timer className="w-4 h-4 mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
-                        {isCycleActive ? 'Stop Automated Cycle' : 'Activate Cycle Logic'}
-                      </Button>
+                      <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-tighter">Cycle logic is automatically applied to all pumps</p>
                     </div>
 
                     {/* Environment Controls */}
