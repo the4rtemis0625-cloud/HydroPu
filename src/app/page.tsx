@@ -24,7 +24,9 @@ import {
   Leaf,
   Clock,
   Timer,
-  Settings2
+  Settings2,
+  Plus,
+  Minus
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -87,6 +89,9 @@ export default function OnePager() {
   const [sprinkler, setSprinkler] = useState(false);
   const [solution1, setSolution1] = useState(false);
   const [solution2, setSolution2] = useState(false);
+  const [phUp, setPhUp] = useState(false);
+  const [phDown, setPhDown] = useState(false);
+  
   const [sensors, setSensors] = useState<SensorData | null>(null);
 
   // Pump Cycle Settings
@@ -100,6 +105,8 @@ export default function OnePager() {
   const [sprinklerTimeLeft, setSprinklerTimeLeft] = useState<number | null>(null);
   const [solution1TimeLeft, setSolution1TimeLeft] = useState<number | null>(null);
   const [solution2TimeLeft, setSolution2TimeLeft] = useState<number | null>(null);
+  const [phUpTimeLeft, setPhUpTimeLeft] = useState<number | null>(null);
+  const [phDownTimeLeft, setPhDownTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
     setCamTimestamp(Date.now());
@@ -194,6 +201,20 @@ export default function OnePager() {
       if (!isOn) setSolution2TimeLeft(null);
     });
 
+    const phUpRef = ref(rtdb, 'settings/phUpStatus');
+    const unsubscribePhUp = onValue(phUpRef, (snapshot) => {
+      const isOn = snapshot.val() === 'on';
+      setPhUp(isOn);
+      if (!isOn) setPhUpTimeLeft(null);
+    });
+
+    const phDownRef = ref(rtdb, 'settings/phDownStatus');
+    const unsubscribePhDown = onValue(phDownRef, (snapshot) => {
+      const isOn = snapshot.val() === 'on';
+      setPhDown(isOn);
+      if (!isOn) setPhDownTimeLeft(null);
+    });
+
     return () => {
       unsubscribeSensors();
       unsubP1Status();
@@ -207,17 +228,18 @@ export default function OnePager() {
       unsubscribeSprinkler();
       unsubscribeSol1();
       unsubscribeSol2();
+      unsubscribePhUp();
+      unsubscribePhDown();
     };
   }, [rtdb]);
 
   const anyEnabled = pumpEnabled.p1 || pumpEnabled.p2 || pumpEnabled.p3;
 
-  // Pump Cycle Execution (Shared clock, but only counting if someone is enabled)
+  // Pump Cycle Execution
   useEffect(() => {
     if (!rtdb) return;
 
     if (!anyEnabled) {
-      // Reset cycle when no pumps are active
       setCyclePhase('on');
       setCycleSecondsRemaining(cycleOnMinutes * 60);
       return;
@@ -296,6 +318,28 @@ export default function OnePager() {
     return () => clearTimeout(timer);
   }, [solution2TimeLeft, rtdb]);
 
+  useEffect(() => {
+    if (phUpTimeLeft === null) return;
+    if (phUpTimeLeft <= 0) {
+      if (rtdb) set(ref(rtdb, 'settings/phUpStatus'), 'off');
+      setPhUpTimeLeft(null);
+      return;
+    }
+    const timer = setTimeout(() => setPhUpTimeLeft(phUpTimeLeft - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phUpTimeLeft, rtdb]);
+
+  useEffect(() => {
+    if (phDownTimeLeft === null) return;
+    if (phDownTimeLeft <= 0) {
+      if (rtdb) set(ref(rtdb, 'settings/phDownStatus'), 'off');
+      setPhDownTimeLeft(null);
+      return;
+    }
+    const timer = setTimeout(() => setPhDownTimeLeft(phDownTimeLeft - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phDownTimeLeft, rtdb]);
+
   const handleConnect = () => {
     if (auth) initiateAnonymousSignIn(auth);
   };
@@ -344,6 +388,22 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/solution2Status'), nextStatus);
     if (nextStatus === 'on') setSolution2TimeLeft(10);
     else setSolution2TimeLeft(null);
+  };
+
+  const togglePhUp = () => {
+    if (!rtdb) return;
+    const nextStatus = phUp ? 'off' : 'on';
+    set(ref(rtdb, 'settings/phUpStatus'), nextStatus);
+    if (nextStatus === 'on') setPhUpTimeLeft(10);
+    else setPhUpTimeLeft(null);
+  };
+
+  const togglePhDown = () => {
+    if (!rtdb) return;
+    const nextStatus = phDown ? 'off' : 'on';
+    set(ref(rtdb, 'settings/phDownStatus'), nextStatus);
+    if (nextStatus === 'on') setPhDownTimeLeft(10);
+    else setPhDownTimeLeft(null);
   };
 
   const toggleAllPumps = (target: boolean) => {
@@ -610,6 +670,30 @@ export default function OnePager() {
                         <Button onClick={toggleSolution2} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Beaker className="w-3 h-3 mr-2" />
                           {solution2 ? `Dosing (${solution2TimeLeft ?? 0}s)` : 'Trigger Solution 2'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">PH solution +</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${phUp ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button onClick={togglePhUp} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${phUp ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                          <Plus className="w-3 h-3 mr-2" />
+                          {phUp ? `Dosing (${phUpTimeLeft ?? 0}s)` : 'Trigger PH +'}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">PH solution -</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${phDown ? 'bg-amber-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                        </div>
+                        <Button onClick={togglePhDown} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${phDown ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                          <Minus className="w-3 h-3 mr-2" />
+                          {phDown ? `Dosing (${phDownTimeLeft ?? 0}s)` : 'Trigger PH -'}
                         </Button>
                       </div>
                     </div>
