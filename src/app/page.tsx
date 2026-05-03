@@ -658,7 +658,7 @@ export default function OnePager() {
                         </div>
                         <Button onClick={toggleSolution1} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution1 ? `Dosing (${solution1TimeLeft ?? 0}s)` : 'Trigger SOLUTION A'}
+                          {solution1 ? `Dosing (${solution1TimeLeft ?? 0}s)` : 'Trigger Solution A'}
                         </Button>
                       </div>
 
