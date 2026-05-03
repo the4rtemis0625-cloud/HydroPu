@@ -653,23 +653,23 @@ export default function OnePager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 1</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">SOLUTION A</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${solution1 ? 'bg-purple-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleSolution1} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution1 ? `Dosing (${solution1TimeLeft ?? 0}s)` : 'Trigger Solution 1'}
+                          {solution1 ? `Dosing (${solution1TimeLeft ?? 0}s)` : 'Trigger SOLUTION A'}
                         </Button>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution 2</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution B</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${solution2 ? 'bg-pink-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleSolution2} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution2 ? `Dosing (${solution2TimeLeft ?? 0}s)` : 'Trigger Solution 2'}
+                          {solution2 ? `Dosing (${solution2TimeLeft ?? 0}s)` : 'Trigger Solution B'}
                         </Button>
                       </div>
                     </div>
