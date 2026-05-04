@@ -26,7 +26,9 @@ import {
   Timer,
   Settings2,
   Plus,
-  Minus
+  Minus,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -50,6 +52,11 @@ interface PumpEnabledStates {
   p1: boolean;
   p2: boolean;
   p3: boolean;
+}
+
+interface CamAnalysisData {
+  healthyCount: number;
+  notHealthyCount: number;
 }
 
 const LETTUCE_QUOTES = [
@@ -94,6 +101,7 @@ export default function OnePager() {
   const [phDown, setPhDown] = useState(false);
   
   const [sensors, setSensors] = useState<SensorData | null>(null);
+  const [camAnalysis, setCamAnalysis] = useState<CamAnalysisData | null>(null);
 
   // Pump Cycle Settings
   const [cycleOnMinutes, setCycleOnMinutes] = useState(2);
@@ -146,6 +154,17 @@ export default function OnePager() {
           waterLevel: data.waterLevel || '---',
         });
         setLastUpdated(new Date().toLocaleTimeString());
+      }
+    });
+
+    const camAnalysisRef = ref(rtdb, 'cam6_latest');
+    const unsubscribeCamAnalysis = onValue(camAnalysisRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setCamAnalysis({
+          healthyCount: data.healthyCount ?? 0,
+          notHealthyCount: data.notHealthyCount ?? 0,
+        });
       }
     });
 
@@ -219,6 +238,7 @@ export default function OnePager() {
 
     return () => {
       unsubscribeSensors();
+      unsubscribeCamAnalysis();
       unsubP1Status();
       unsubP2Status();
       unsubP3Status();
@@ -721,15 +741,34 @@ export default function OnePager() {
                 </div>
 
                 <div className="space-y-6 pt-8 border-t border-muted">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
-                      <Camera className="w-5 h-5 text-accent" />
-                      Latest Capture
-                    </h4>
-                    <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10">
-                      <Camera className="w-3 h-3" />
-                      Trigger Capture
-                    </Button>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                        <Camera className="w-5 h-5 text-accent" />
+                        Capture Analytics
+                      </h4>
+                      <p className="text-xs text-muted-foreground">Real-time health assessment across all active cameras</p>
+                    </div>
+
+                    <div className="flex items-center gap-6 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-2xl border border-muted shadow-sm">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Healthy
+                        </span>
+                        <span className="text-2xl font-black text-primary leading-none mt-1">{camAnalysis?.healthyCount ?? 0}</span>
+                      </div>
+                      <div className="w-px h-8 bg-muted" />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> At Risk
+                        </span>
+                        <span className="text-2xl font-black text-primary leading-none mt-1">{camAnalysis?.notHealthyCount ?? 0}</span>
+                      </div>
+                      <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="ml-4 text-xs gap-2 border-accent text-accent hover:bg-accent/10 rounded-xl">
+                        <Camera className="w-3 h-3" />
+                        Trigger
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
