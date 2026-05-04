@@ -304,7 +304,7 @@ export default function OnePager() {
       return;
     }
     const timer = setTimeout(() => setSolution1TimeLeft(solution1TimeLeft - 1), 1000);
-    return () => clearTimeout(timer);
+    return () => clearInterval(timer);
   }, [solution1TimeLeft, rtdb]);
 
   useEffect(() => {
