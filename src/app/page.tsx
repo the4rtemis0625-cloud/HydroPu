@@ -37,6 +37,7 @@ interface SensorData {
   temperature: number;
   humidity: number;
   tds: number;
+  waterLevel: string;
 }
 
 interface PumpStates {
@@ -142,6 +143,7 @@ export default function OnePager() {
           temperature: data.temperature !== undefined ? Number(data.temperature) : 0,
           humidity: data.humidity !== undefined ? Number(data.humidity) : 0,
           tds: data.tds !== undefined ? Number(data.tds) : 0,
+          waterLevel: data.waterLevel || '---',
         });
         setLastUpdated(new Date().toLocaleTimeString());
       }
@@ -498,7 +500,7 @@ export default function OnePager() {
                   </div>
                 </div>
 
-                <div id="hub" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div id="hub" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                       <FlaskConical className="w-4 h-4 text-primary animate-pulse group-hover:scale-110 transition-transform" /> pH Level
@@ -537,6 +539,16 @@ export default function OnePager() {
                       {sensors ? sensors.tds : '---'}
                     </div>
                     <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 0 — 2000 ppm</div>
+                  </div>
+
+                  <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Waves className="w-4 h-4 text-primary animate-pulse group-hover:scale-110 transition-transform" /> Water Level
+                    </div>
+                    <div className="font-bold text-primary text-5xl tracking-tighter uppercase">
+                      {sensors ? sensors.waterLevel : '---'}
+                    </div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Status: Live</div>
                   </div>
                 </div>
 
