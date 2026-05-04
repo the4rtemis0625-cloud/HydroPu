@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
-import { ref, onValue, set } from "firebase/database";
+import { ref, onValue, set, off } from "firebase/database";
 
 interface SensorData {
   ph: number;
@@ -100,7 +100,7 @@ export default function OnePager() {
   const [phDown, setPhDown] = useState(false);
   
   const [sensors, setSensors] = useState<SensorData | null>(null);
-  const [camAnalysis, setCamAnalysis] = useState<CamAnalysisData | null>(null);
+  const [camAnalyses, setCamAnalyses] = useState<Record<number, CamAnalysisData>>({});
 
   // Pump Cycle Settings
   const [cycleOnMinutes, setCycleOnMinutes] = useState(2);
@@ -156,15 +156,23 @@ export default function OnePager() {
       }
     });
 
-    const camAnalysisRef = ref(rtdb, 'cam6_latest');
-    const unsubscribeCamAnalysis = onValue(camAnalysisRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setCamAnalysis({
-          healthyCount: data.healthyCount ?? 0,
-          notHealthyCount: data.notHealthyCount ?? 0,
-        });
-      }
+    // Subscriptions for all camera analysis paths
+    const camSubscriptions: Array<() => void> = [];
+    [1, 2, 3, 4, 5, 6].forEach((num) => {
+      const camRef = ref(rtdb, `cam${num}_latest`);
+      const unsub = onValue(camRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setCamAnalyses(prev => ({
+            ...prev,
+            [num]: {
+              healthyCount: data.healthyCount ?? 0,
+              notHealthyCount: data.notHealthyCount ?? 0,
+            }
+          }));
+        }
+      });
+      camSubscriptions.push(() => off(camRef, 'value', unsub));
     });
 
     // Listen to hardware statuses (what's actually running)
@@ -237,7 +245,7 @@ export default function OnePager() {
 
     return () => {
       unsubscribeSensors();
-      unsubscribeCamAnalysis();
+      camSubscriptions.forEach(unsub => unsub());
       unsubP1Status();
       unsubP2Status();
       unsubP3Status();
@@ -777,16 +785,14 @@ export default function OnePager() {
                             <div className="w-full h-full bg-muted animate-pulse" />
                           )}
                         </div>
-                        {num === 6 && (
-                          <div className="flex justify-between items-center px-4 py-2 bg-white/50 backdrop-blur-sm rounded-2xl border border-muted text-[10px] font-bold uppercase tracking-tight">
-                            <span className="text-emerald-600 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> {camAnalysis?.healthyCount ?? 0} Healthy
-                            </span>
-                            <span className="text-rose-600 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" /> {camAnalysis?.notHealthyCount ?? 0} At Risk
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex justify-between items-center px-4 py-2 bg-white/50 backdrop-blur-sm rounded-2xl border border-muted text-[10px] font-bold uppercase tracking-tight">
+                          <span className="text-emerald-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> {camAnalyses[num]?.healthyCount ?? 0} Healthy
+                          </span>
+                          <span className="text-rose-600 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> {camAnalyses[num]?.notHealthyCount ?? 0} At Risk
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
