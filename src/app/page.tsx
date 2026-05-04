@@ -23,12 +23,11 @@ import {
   Beaker,
   Leaf,
   Clock,
-  Timer,
-  Settings2,
   Plus,
   Minus,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Settings2
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -750,21 +749,8 @@ export default function OnePager() {
                       <p className="text-xs text-muted-foreground">Real-time health assessment across all active cameras</p>
                     </div>
 
-                    <div className="flex items-center gap-6 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-2xl border border-muted shadow-sm">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Healthy
-                        </span>
-                        <span className="text-2xl font-black text-primary leading-none mt-1">{camAnalysis?.healthyCount ?? 0}</span>
-                      </div>
-                      <div className="w-px h-8 bg-muted" />
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-rose-600 uppercase tracking-widest flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" /> At Risk
-                        </span>
-                        <span className="text-2xl font-black text-primary leading-none mt-1">{camAnalysis?.notHealthyCount ?? 0}</span>
-                      </div>
-                      <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="ml-4 text-xs gap-2 border-accent text-accent hover:bg-accent/10 rounded-xl">
+                    <div className="flex items-center gap-4">
+                      <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10 rounded-xl">
                         <Camera className="w-3 h-3" />
                         Trigger
                       </Button>
@@ -773,21 +759,33 @@ export default function OnePager() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3, 4, 5, 6].map((num) => (
-                      <div key={num} className="relative aspect-video w-full rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
-                        <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                          <span className="text-[9px] font-bold text-white uppercase tracking-wider">CAM-0{num}</span>
+                      <div key={num} className="space-y-2">
+                        <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
+                          <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[9px] font-bold text-white uppercase tracking-wider">CAM-0{num}</span>
+                          </div>
+                          {camTimestamp !== null ? (
+                            <Image 
+                              src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam${num}.jpg?t=${camTimestamp}`}
+                              alt={`Hydroponics Camera Feed ${num}`}
+                              fill
+                              className="object-cover transition-transform group-hover:scale-[1.05] duration-500"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted animate-pulse" />
+                          )}
                         </div>
-                        {camTimestamp !== null ? (
-                          <Image 
-                            src={`https://gjfwrphhhgodjhtgwmum.supabase.co/storage/v1/object/public/Hydro/cam${num}.jpg?t=${camTimestamp}`}
-                            alt={`Hydroponics Camera Feed ${num}`}
-                            fill
-                            className="object-cover transition-transform group-hover:scale-[1.05] duration-500"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-muted animate-pulse" />
+                        {num === 6 && (
+                          <div className="flex justify-between items-center px-4 py-2 bg-white/50 backdrop-blur-sm rounded-2xl border border-muted text-[10px] font-bold uppercase tracking-tight">
+                            <span className="text-emerald-600 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> {camAnalysis?.healthyCount ?? 0} Healthy
+                            </span>
+                            <span className="text-rose-600 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> {camAnalysis?.notHealthyCount ?? 0} At Risk
+                            </span>
+                          </div>
                         )}
                       </div>
                     ))}
