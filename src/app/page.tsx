@@ -761,7 +761,7 @@ export default function OnePager() {
                     <div className="flex items-center gap-4">
                       <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10 rounded-xl">
                         <Camera className="w-3 h-3" />
-                        Trigger
+                        Capture
                       </Button>
                     </div>
                   </div>
