@@ -447,9 +447,10 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
     set(ref(rtdb, 'settings/cameraStatus'), 'capture');
     
+    // Updated: Revert to idle after 5 minutes (300,000 ms)
     setTimeout(() => {
       set(ref(rtdb, 'settings/cameraStatus'), 'idle');
-    }, 10000);
+    }, 300000);
   };
 
   const formatTime = (seconds: number) => {
