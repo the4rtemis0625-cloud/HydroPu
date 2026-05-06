@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -27,7 +28,8 @@ import {
   Minus,
   CheckCircle2,
   AlertCircle,
-  Settings2
+  Settings2,
+  Target
 } from "lucide-react";
 import { useUser, useAuth, useDatabase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
@@ -39,6 +41,13 @@ interface SensorData {
   humidity: number;
   tds: number;
   waterLevel: string;
+}
+
+interface TargetConfig {
+  ph: number;
+  temperature: number;
+  tds: number;
+  humidity: number;
 }
 
 interface PumpStates {
@@ -100,6 +109,12 @@ export default function OnePager() {
   const [phDown, setPhDown] = useState(false);
   
   const [sensors, setSensors] = useState<SensorData | null>(null);
+  const [targets, setTargets] = useState<TargetConfig>({
+    ph: 6.0,
+    temperature: 22.0,
+    tds: 1000,
+    humidity: 60
+  });
   const [camAnalyses, setCamAnalyses] = useState<Record<number, CamAnalysisData>>({});
 
   // Pump Cycle Settings
@@ -108,7 +123,7 @@ export default function OnePager() {
   const [cyclePhase, setCyclePhase] = useState<'on' | 'off'>('on');
   const [cycleSecondsRemaining, setCycleSecondsRemaining] = useState(0);
 
-  // Timer states for manual overrides
+  // Timer states for manual overrides (dosing duration)
   const [heaterTimeLeft, setHeaterTimeLeft] = useState<number | null>(null);
   const [sprinklerTimeLeft, setSprinklerTimeLeft] = useState<number | null>(null);
   const [solution1TimeLeft, setSolution1TimeLeft] = useState<number | null>(null);
@@ -153,6 +168,19 @@ export default function OnePager() {
           waterLevel: data.waterLevel || '---',
         });
         setLastUpdated(new Date().toLocaleTimeString());
+      }
+    });
+
+    const targetsRef = ref(rtdb, 'settings/targets');
+    const unsubscribeTargets = onValue(targetsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setTargets({
+          ph: data.ph ?? 6.0,
+          temperature: data.temperature ?? 22.0,
+          tds: data.tds ?? 1000,
+          humidity: data.humidity ?? 60
+        });
       }
     });
 
@@ -245,6 +273,7 @@ export default function OnePager() {
 
     return () => {
       unsubscribeSensors();
+      unsubscribeTargets();
       camSubscriptions.forEach(unsub => unsub());
       unsubP1Status();
       unsubP2Status();
@@ -288,19 +317,60 @@ export default function OnePager() {
     return () => clearInterval(timer);
   }, [anyEnabled, cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
 
+  // Automation Logic based on Sensor Targets
+  useEffect(() => {
+    if (!rtdb || !sensors) return;
+
+    const syncStatus = (path: string, current: boolean, shouldBeOn: boolean) => {
+      const targetStr = shouldBeOn ? 'on' : 'off';
+      if ((current && !shouldBeOn) || (!current && shouldBeOn)) {
+        set(ref(rtdb, path), targetStr);
+      }
+    };
+
+    // TDS Automation: if lower than target, trigger Solution A and B
+    const shouldSolutionsBeOn = sensors.tds < targets.tds;
+    syncStatus('settings/solution1Status', solution1, shouldSolutionsBeOn);
+    syncStatus('settings/solution2Status', solution2, shouldSolutionsBeOn);
+
+    // Temperature Automation: low -> heater, high -> sprinkler
+    let shouldHeaterBeOn = sensors.temperature < targets.temperature - 0.5;
+    let shouldSprinklerBeOn = sensors.temperature > targets.temperature + 0.5;
+
+    // Humidity Automation: low -> heater and sprinkler pulse
+    if (sensors.humidity < targets.humidity) {
+      shouldHeaterBeOn = true;
+      shouldSprinklerBeOn = true;
+    }
+
+    syncStatus('settings/heaterStatus', heater, shouldHeaterBeOn);
+    syncStatus('settings/sprinklerStatus', sprinkler, shouldSprinklerBeOn);
+
+    // pH Automation: lower -> PH+, higher -> PH-
+    const shouldPhUpBeOn = sensors.ph < targets.ph - 0.1;
+    const shouldPhDownBeOn = sensors.ph > targets.ph + 0.1;
+
+    syncStatus('settings/phUpStatus', phUp, shouldPhUpBeOn);
+    syncStatus('settings/phDownStatus', phDown, shouldPhDownBeOn);
+
+  }, [sensors, targets, rtdb, solution1, solution2, heater, sprinkler, phUp, phDown]);
+
   // Sync Hardware Status based on Cycle Phase and individual Enable flags
   useEffect(() => {
     if (!rtdb) return;
 
     const syncPump = (num: 1|2|3, isEnabled: boolean) => {
       const targetStatus = (isEnabled && cyclePhase === 'on') ? 'on' : 'off';
-      set(ref(rtdb, `settings/pump${num}Status`), targetStatus);
+      const currentVal = pumps[`pump${num}` as keyof PumpStates];
+      if ((currentVal && targetStatus === 'off') || (!currentVal && targetStatus === 'on')) {
+        set(ref(rtdb, `settings/pump${num}Status`), targetStatus);
+      }
     };
 
     syncPump(1, pumpEnabled.p1);
     syncPump(2, pumpEnabled.p2);
     syncPump(3, pumpEnabled.p3);
-  }, [pumpEnabled, cyclePhase, rtdb]);
+  }, [pumpEnabled, cyclePhase, rtdb, pumps]);
 
   // Manual timer countdowns
   useEffect(() => {
@@ -387,6 +457,11 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/pumpCycle'), { onMinutes: on, offMinutes: off });
   };
 
+  const updateTarget = (key: keyof TargetConfig, val: number) => {
+    if (!rtdb) return;
+    set(ref(rtdb, `settings/targets/${key}`), val);
+  };
+
   const toggleHeater = () => {
     if (!rtdb) return;
     const nextStatus = heater ? 'off' : 'on';
@@ -447,7 +522,7 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
     set(ref(rtdb, 'settings/cameraStatus'), 'capture');
     
-    // Updated: Revert to idle after 5 minutes (300,000 ms)
+    // Revert to idle after 5 minutes (300,000 ms)
     setTimeout(() => {
       set(ref(rtdb, 'settings/cameraStatus'), 'idle');
     }, 300000);
@@ -536,7 +611,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? sensors.ph.toFixed(2) : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 5.5 — 6.5</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.ph.toFixed(1)}</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -546,7 +621,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? `${sensors.temperature.toFixed(1)}°C` : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 18 — 24°C</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.temperature.toFixed(1)}°C</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -556,7 +631,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? `${sensors.humidity.toFixed(1)}%` : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 50 — 70%</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.humidity.toFixed(0)}%</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -566,7 +641,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? sensors.tds : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: 0 — 2000 ppm</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.tds} ppm</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -581,25 +656,65 @@ export default function OnePager() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-                  <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center h-full">
-                    <div className="bg-primary/10 p-4 rounded-full mb-6 animate-pulse">
-                      <Leaf className="w-10 h-10 text-primary" />
-                    </div>
-                    <h3 className="font-headline font-bold text-primary mb-4 text-lg uppercase tracking-widest">
-                      Grower's Wisdom
-                    </h3>
-                    <div className="relative min-h-[100px] flex items-center justify-center overflow-hidden">
-                      <p 
-                        key={quoteIndex}
-                        className="text-primary/80 font-medium italic text-lg leading-relaxed px-4 animate-in fade-in slide-in-from-right-8 duration-700"
-                      >
-                        "{LETTUCE_QUOTES[quoteIndex]}"
-                      </p>
+                  <div className="space-y-6">
+                    <div className="p-8 bg-primary/5 rounded-3xl border border-primary/10 flex flex-col justify-center items-center text-center h-full">
+                      <div className="bg-primary/10 p-4 rounded-full mb-6 animate-pulse">
+                        <Leaf className="w-10 h-10 text-primary" />
+                      </div>
+                      <h3 className="font-headline font-bold text-primary mb-4 text-lg uppercase tracking-widest">
+                        Grower's Wisdom
+                      </h3>
+                      <div className="relative min-h-[100px] flex items-center justify-center overflow-hidden">
+                        <p 
+                          key={quoteIndex}
+                          className="text-primary/80 font-medium italic text-lg leading-relaxed px-4 animate-in fade-in slide-in-from-right-8 duration-700"
+                        >
+                          "{LETTUCE_QUOTES[quoteIndex]}"
+                        </p>
+                      </div>
                     </div>
                   </div>
                   
                   <div id="controls" className="p-6 bg-primary/5 rounded-3xl border border-primary/10 space-y-6">
                     <div className="flex items-center justify-between border-b border-primary/10 pb-4">
+                      <h3 className="font-headline font-bold text-primary flex items-center gap-2 text-sm">
+                        <Target className="w-5 h-5 text-accent" />
+                        Target Configuration
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
+                          <span>Target pH</span>
+                          <span className="text-primary">{targets.ph.toFixed(1)}</span>
+                        </div>
+                        <Slider value={[targets.ph]} max={14} min={0} step={0.1} onValueChange={(val) => updateTarget('ph', val[0])} />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
+                          <span>Target Temp (°C)</span>
+                          <span className="text-primary">{targets.temperature.toFixed(1)}</span>
+                        </div>
+                        <Slider value={[targets.temperature]} max={40} min={10} step={0.5} onValueChange={(val) => updateTarget('temperature', val[0])} />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
+                          <span>Target TDS (ppm)</span>
+                          <span className="text-primary">{targets.tds}</span>
+                        </div>
+                        <Slider value={[targets.tds]} max={3000} min={0} step={50} onValueChange={(val) => updateTarget('tds', val[0])} />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
+                          <span>Target Humidity (%)</span>
+                          <span className="text-primary">{targets.humidity}%</span>
+                        </div>
+                        <Slider value={[targets.humidity]} max={100} min={0} step={1} onValueChange={(val) => updateTarget('humidity', val[0])} />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b border-primary/10 pb-4 pt-4">
                       <h3 className="font-headline font-bold text-primary flex items-center gap-2 text-sm">
                         <Settings2 className="w-5 h-5 text-accent" />
                         System Controller Hub
@@ -663,7 +778,6 @@ export default function OnePager() {
                           <Slider value={[cycleOffMinutes]} max={30} min={1} step={1} onValueChange={(val) => updateCycleTimes(cycleOnMinutes, val[0])} />
                         </div>
                       </div>
-                      <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-tighter">Cycle only counts when at least one pump is ON</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
