@@ -44,10 +44,12 @@ interface SensorData {
 }
 
 interface TargetConfig {
-  ph: number;
-  temperature: number;
-  tds: number;
-  humidity: number;
+  phMin: number;
+  phMax: number;
+  tempMin: number;
+  tempMax: number;
+  tdsMin: number;
+  humidityMin: number;
 }
 
 interface PumpStates {
@@ -110,10 +112,12 @@ export default function OnePager() {
   
   const [sensors, setSensors] = useState<SensorData | null>(null);
   const [targets, setTargets] = useState<TargetConfig>({
-    ph: 6.0,
-    temperature: 22.0,
-    tds: 1000,
-    humidity: 60
+    phMin: 5.8,
+    phMax: 6.2,
+    tempMin: 20.0,
+    tempMax: 24.0,
+    tdsMin: 800,
+    humidityMin: 50
   });
   const [camAnalyses, setCamAnalyses] = useState<Record<number, CamAnalysisData>>({});
 
@@ -176,10 +180,12 @@ export default function OnePager() {
       const data = snapshot.val();
       if (data) {
         setTargets({
-          ph: data.ph ?? 6.0,
-          temperature: data.temperature ?? 22.0,
-          tds: data.tds ?? 1000,
-          humidity: data.humidity ?? 60
+          phMin: data.phMin ?? 5.8,
+          phMax: data.phMax ?? 6.2,
+          tempMin: data.tempMin ?? 20.0,
+          tempMax: data.tempMax ?? 24.0,
+          tdsMin: data.tdsMin ?? 800,
+          humidityMin: data.humidityMin ?? 50
         });
       }
     });
@@ -317,7 +323,10 @@ export default function OnePager() {
     return () => clearInterval(timer);
   }, [anyEnabled, cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
 
-  // Automation Logic based on Sensor Targets
+  // Automation Logic based on Sensor Ranges (Tolerance Approach)
+  // NOTE: For production 'always-on' automation, this logic should be 
+  // deployed as a Firebase Cloud Function. This client implementation 
+  // serves as a real-time prototype while the tab is open.
   useEffect(() => {
     if (!rtdb || !sensors) return;
 
@@ -328,17 +337,17 @@ export default function OnePager() {
       }
     };
 
-    // TDS Automation: if lower than target, trigger Solution A and B
-    const shouldSolutionsBeOn = sensors.tds < targets.tds;
+    // TDS Automation: lower than min -> dosing
+    const shouldSolutionsBeOn = sensors.tds < targets.tdsMin;
     syncStatus('settings/solution1Status', solution1, shouldSolutionsBeOn);
     syncStatus('settings/solution2Status', solution2, shouldSolutionsBeOn);
 
     // Temperature Automation: low -> heater, high -> sprinkler
-    let shouldHeaterBeOn = sensors.temperature < targets.temperature - 0.5;
-    let shouldSprinklerBeOn = sensors.temperature > targets.temperature + 0.5;
+    let shouldHeaterBeOn = sensors.temperature < targets.tempMin;
+    let shouldSprinklerBeOn = sensors.temperature > targets.tempMax;
 
-    // Humidity Automation: low -> heater and sprinkler pulse
-    if (sensors.humidity < targets.humidity) {
+    // Humidity Automation: below min -> pulse thermal/moisture
+    if (sensors.humidity < targets.humidityMin) {
       shouldHeaterBeOn = true;
       shouldSprinklerBeOn = true;
     }
@@ -346,9 +355,9 @@ export default function OnePager() {
     syncStatus('settings/heaterStatus', heater, shouldHeaterBeOn);
     syncStatus('settings/sprinklerStatus', sprinkler, shouldSprinklerBeOn);
 
-    // pH Automation: lower -> PH+, higher -> PH-
-    const shouldPhUpBeOn = sensors.ph < targets.ph - 0.1;
-    const shouldPhDownBeOn = sensors.ph > targets.ph + 0.1;
+    // pH Automation: lower than min -> PH+, higher than max -> PH-
+    const shouldPhUpBeOn = sensors.ph < targets.phMin;
+    const shouldPhDownBeOn = sensors.ph > targets.phMax;
 
     syncStatus('settings/phUpStatus', phUp, shouldPhUpBeOn);
     syncStatus('settings/phDownStatus', phDown, shouldPhDownBeOn);
@@ -611,7 +620,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? sensors.ph.toFixed(2) : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.ph.toFixed(1)}</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Safe: {targets.phMin}-{targets.phMax}</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -621,7 +630,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? `${sensors.temperature.toFixed(1)}°C` : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.temperature.toFixed(1)}°C</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Safe: {targets.tempMin}-{targets.tempMax}°C</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -631,7 +640,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? `${sensors.humidity.toFixed(1)}%` : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.humidity.toFixed(0)}%</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Min: {targets.humidityMin}%</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -641,7 +650,7 @@ export default function OnePager() {
                     <div className="font-bold text-primary text-5xl tracking-tighter">
                       {sensors ? sensors.tds : '---'}
                     </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Target: {targets.tds} ppm</div>
+                    <div className="mt-3 text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-muted/50 px-2 py-1 rounded inline-block">Min: {targets.tdsMin} ppm</div>
                   </div>
 
                   <div className="p-8 bg-background rounded-3xl border border-muted shadow-sm hover:shadow-xl transition-all group">
@@ -679,38 +688,56 @@ export default function OnePager() {
                     <div className="flex items-center justify-between border-b border-primary/10 pb-4">
                       <h3 className="font-headline font-bold text-primary flex items-center gap-2 text-sm">
                         <Target className="w-5 h-5 text-accent" />
-                        Target Configuration
+                        Target Configuration (Ranges)
                       </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div className="space-y-4">
                         <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
-                          <span>Target pH</span>
-                          <span className="text-primary">{targets.ph.toFixed(1)}</span>
+                          <span>pH Target Range</span>
+                          <span className="text-primary">{targets.phMin.toFixed(1)} - {targets.phMax.toFixed(1)}</span>
                         </div>
-                        <Slider value={[targets.ph]} max={14} min={0} step={0.1} onValueChange={(val) => updateTarget('ph', val[0])} />
+                        <Slider 
+                          defaultValue={[targets.phMin, targets.phMax]} 
+                          max={14} 
+                          min={0} 
+                          step={0.1} 
+                          onValueChange={(val) => {
+                            updateTarget('phMin', val[0]);
+                            updateTarget('phMax', val[1]);
+                          }} 
+                        />
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
-                          <span>Target Temp (°C)</span>
-                          <span className="text-primary">{targets.temperature.toFixed(1)}</span>
+                          <span>Temperature Range (°C)</span>
+                          <span className="text-primary">{targets.tempMin.toFixed(1)}° - {targets.tempMax.toFixed(1)}°</span>
                         </div>
-                        <Slider value={[targets.temperature]} max={40} min={10} step={0.5} onValueChange={(val) => updateTarget('temperature', val[0])} />
+                        <Slider 
+                          defaultValue={[targets.tempMin, targets.tempMax]} 
+                          max={40} 
+                          min={10} 
+                          step={0.5} 
+                          onValueChange={(val) => {
+                            updateTarget('tempMin', val[0]);
+                            updateTarget('tempMax', val[1]);
+                          }} 
+                        />
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
-                          <span>Target TDS (ppm)</span>
-                          <span className="text-primary">{targets.tds}</span>
+                          <span>Min TDS Threshold (ppm)</span>
+                          <span className="text-primary">{targets.tdsMin}</span>
                         </div>
-                        <Slider value={[targets.tds]} max={3000} min={0} step={50} onValueChange={(val) => updateTarget('tds', val[0])} />
+                        <Slider value={[targets.tdsMin]} max={3000} min={0} step={50} onValueChange={(val) => updateTarget('tdsMin', val[0])} />
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
-                          <span>Target Humidity (%)</span>
-                          <span className="text-primary">{targets.humidity}%</span>
+                          <span>Min Humidity Threshold (%)</span>
+                          <span className="text-primary">{targets.humidityMin}%</span>
                         </div>
-                        <Slider value={[targets.humidity]} max={100} min={0} step={1} onValueChange={(val) => updateTarget('humidity', val[0])} />
+                        <Slider value={[targets.humidityMin]} max={100} min={0} step={1} onValueChange={(val) => updateTarget('humidityMin', val[0])} />
                       </div>
                     </div>
 
@@ -738,10 +765,10 @@ export default function OnePager() {
                               className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${isEnabled ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}
                             >
                               <Power className="w-3 h-3 mr-2" />
-                              {isEnabled ? 'ON' : 'OFF'}
+                              {isEnabled ? 'ENABLED' : 'DISABLED'}
                             </Button>
                             <div className="text-[8px] text-center font-bold text-muted-foreground uppercase">
-                              {isActuallyRunning ? 'Spraying...' : 'Resting'}
+                              {isActuallyRunning ? 'Spraying...' : 'Standby'}
                             </div>
                           </div>
                         );
@@ -752,12 +779,12 @@ export default function OnePager() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <RotateCcw className="w-4 h-4 text-accent animate-spin-slow" />
-                          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Cycle Timer</span>
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Active Cycle Timer</span>
                         </div>
                         <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/20 rounded-full">
                           <Clock className="w-3 h-3 text-accent" />
                           <span className="text-[9px] font-bold text-accent uppercase">
-                            {anyEnabled ? `${cyclePhase}: ${formatTime(cycleSecondsRemaining)}` : 'Paused'}
+                            {anyEnabled ? `${cyclePhase}: ${formatTime(cycleSecondsRemaining)}` : 'Awaiting Enable'}
                           </span>
                         </div>
                       </div>
@@ -765,15 +792,15 @@ export default function OnePager() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
-                            <span>ON Time</span>
-                            <span className="text-primary">{cycleOnMinutes} min</span>
+                            <span>Cycle ON (min)</span>
+                            <span className="text-primary">{cycleOnMinutes}</span>
                           </div>
                           <Slider value={[cycleOnMinutes]} max={30} min={1} step={1} onValueChange={(val) => updateCycleTimes(val[0], cycleOffMinutes)} />
                         </div>
                         <div className="space-y-3">
                           <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase">
-                            <span>OFF Time</span>
-                            <span className="text-primary">{cycleOffMinutes} min</span>
+                            <span>Cycle OFF (min)</span>
+                            <span className="text-primary">{cycleOffMinutes}</span>
                           </div>
                           <Slider value={[cycleOffMinutes]} max={30} min={1} step={1} onValueChange={(val) => updateCycleTimes(cycleOnMinutes, val[0])} />
                         </div>
@@ -783,23 +810,23 @@ export default function OnePager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-primary/10 pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Heater</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Thermal Heater</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${heater ? 'bg-orange-500' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleHeater} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${heater ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Flame className="w-3 h-3 mr-2" />
-                          {heater ? `ON (${heaterTimeLeft ?? 0}s)` : 'OFF'}
+                          {heater ? `ON (${heaterTimeLeft ?? 'AUTO'}s)` : 'OFF'}
                         </Button>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Sprinkler</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Cooling Sprinkler</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${sprinkler ? 'bg-blue-400' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleSprinkler} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${sprinkler ? 'bg-blue-400 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <CloudRain className="w-3 h-3 mr-2" />
-                          {sprinkler ? `ON (${sprinklerTimeLeft ?? 0}s)` : 'OFF'}
+                          {sprinkler ? `ON (${sprinklerTimeLeft ?? 'AUTO'}s)` : 'OFF'}
                         </Button>
                       </div>
                     </div>
@@ -807,23 +834,23 @@ export default function OnePager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">SOLUTION A</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Nutrient A</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${solution1 ? 'bg-purple-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleSolution1} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution1 ? `Dosing (${solution1TimeLeft ?? 0}s)` : 'Trigger Solution A'}
+                          {solution1 ? `DOSING (${solution1TimeLeft ?? 'AUTO'}s)` : 'Trigger Solution A'}
                         </Button>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution B</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Nutrient B</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${solution2 ? 'bg-pink-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleSolution2} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Beaker className="w-3 h-3 mr-2" />
-                          {solution2 ? `Dosing (${solution2TimeLeft ?? 0}s)` : 'Trigger Solution B'}
+                          {solution2 ? `DOSING (${solution2TimeLeft ?? 'AUTO'}s)` : 'Trigger Solution B'}
                         </Button>
                       </div>
                     </div>
@@ -831,23 +858,23 @@ export default function OnePager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">PH solution +</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">pH Boost (Up)</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${phUp ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={togglePhUp} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${phUp ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Plus className="w-3 h-3 mr-2" />
-                          {phUp ? `Dosing (${phUpTimeLeft ?? 0}s)` : 'Trigger PH +'}
+                          {phUp ? `DOSING (${phUpTimeLeft ?? 'AUTO'}s)` : 'Trigger PH +'}
                         </Button>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">PH solution -</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">pH Adjust (Down)</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${phDown ? 'bg-amber-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={togglePhDown} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${phDown ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <Minus className="w-3 h-3 mr-2" />
-                          {phDown ? `Dosing (${phDownTimeLeft ?? 0}s)` : 'Trigger PH -'}
+                          {phDown ? `DOSING (${phDownTimeLeft ?? 'AUTO'}s)` : 'Trigger PH -'}
                         </Button>
                       </div>
                     </div>
@@ -857,7 +884,7 @@ export default function OnePager() {
                       className={`w-full h-12 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 ${allEnabled ? 'bg-destructive hover:bg-destructive/90 text-white' : 'bg-primary hover:bg-primary/90 text-white'}`}
                     >
                       {allEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                      {allEnabled ? 'Master Kill Switch (OFF)' : 'Activate Full System (ON)'}
+                      {allEnabled ? 'EMERGENCY SHUTDOWN' : 'ACTIVATE ALL PUMPS'}
                     </Button>
                   </div>
                 </div>
@@ -867,15 +894,15 @@ export default function OnePager() {
                     <div className="space-y-1">
                       <h4 className="text-lg font-bold text-primary flex items-center gap-2">
                         <Camera className="w-5 h-5 text-accent" />
-                        Capture Analytics
+                        Health Analytics Grid
                       </h4>
-                      <p className="text-xs text-muted-foreground">Real-time health assessment across all active cameras</p>
+                      <p className="text-xs text-muted-foreground">Autonomous AI health scans across all active camera arrays</p>
                     </div>
 
                     <div className="flex items-center gap-4">
                       <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10 rounded-xl">
                         <Camera className="w-3 h-3" />
-                        Capture
+                        Capture Scan
                       </Button>
                     </div>
                   </div>
@@ -886,7 +913,7 @@ export default function OnePager() {
                         <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-muted shadow-lg bg-black group">
                           <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
                             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-[9px] font-bold text-white uppercase tracking-wider">CAM-0{num}</span>
+                            <span className="text-[9px] font-bold text-white uppercase tracking-wider">ARRAY-0{num}</span>
                           </div>
                           {camTimestamp !== null ? (
                             <Image 
@@ -902,10 +929,10 @@ export default function OnePager() {
                         </div>
                         <div className="flex justify-between items-center px-4 py-2 bg-white/50 backdrop-blur-sm rounded-2xl border border-muted text-[10px] font-bold uppercase tracking-tight">
                           <span className="text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> {camAnalyses[num]?.healthyCount ?? 0} Healthy
+                            <CheckCircle2 className="w-3 h-3" /> {camAnalyses[num]?.healthyCount ?? 0} HEALTHY
                           </span>
                           <span className="text-rose-600 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" /> {camAnalyses[num]?.notHealthyCount ?? 0} At Risk
+                            <AlertCircle className="w-3 h-3" /> {camAnalyses[num]?.notHealthyCount ?? 0} AT RISK
                           </span>
                         </div>
                       </div>
@@ -927,8 +954,8 @@ export default function OnePager() {
             <span className="font-headline font-bold text-primary tracking-tight text-xl">HydroPu</span>
           </div>
           <div className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest text-center md:text-right">
-            © {currentYear || '...'} HydroPu Monitoring Framework. <br />
-            <span className="text-[9px] opacity-60">High Performance Data Stream Interface</span>
+            © {currentYear || '...'} HydroPu Precision Framework. <br />
+            <span className="text-[9px] opacity-60">Engineered for Optimal Plant Growth</span>
           </div>
         </div>
       </footer>
