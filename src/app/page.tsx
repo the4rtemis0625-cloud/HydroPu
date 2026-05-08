@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -122,13 +121,11 @@ export default function OnePager() {
   });
   const [camAnalyses, setCamAnalyses] = useState<Record<number, CamAnalysisData>>({});
 
-  // Pump Cycle Settings
   const [cycleOnMinutes, setCycleOnMinutes] = useState(2);
   const [cycleOffMinutes, setCycleOffMinutes] = useState(1);
   const [cyclePhase, setCyclePhase] = useState<'on' | 'off'>('on');
   const [cycleSecondsRemaining, setCycleSecondsRemaining] = useState(0);
 
-  // Timer states for manual overrides (dosing duration)
   const [heaterTimeLeft, setHeaterTimeLeft] = useState<number | null>(null);
   const [sprinklerTimeLeft, setSprinklerTimeLeft] = useState<number | null>(null);
   const [solution1TimeLeft, setSolution1TimeLeft] = useState<number | null>(null);
@@ -142,7 +139,6 @@ export default function OnePager() {
     setQuoteIndex(Math.floor(Math.random() * LETTUCE_QUOTES.length));
   }, []);
 
-  // Auto-refresh camera feeds every 10 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCamTimestamp(Date.now());
@@ -199,7 +195,6 @@ export default function OnePager() {
       }
     });
 
-    // Subscriptions for all camera analysis paths
     const camSubscriptions: Array<() => void> = [];
     [1, 2, 3, 4, 5, 6].forEach((num) => {
       const camRef = ref(rtdb, `cam${num}_latest`);
@@ -218,7 +213,6 @@ export default function OnePager() {
       camSubscriptions.push(() => off(camRef, 'value', unsub));
     });
 
-    // Listen to hardware statuses (what's actually running)
     const p1StatusRef = ref(rtdb, 'settings/pump1Status');
     const unsubP1Status = onValue(p1StatusRef, (snapshot) => setPumps(prev => ({ ...prev, pump1: snapshot.val() === 'on' })));
     const p2StatusRef = ref(rtdb, 'settings/pump2Status');
@@ -226,7 +220,6 @@ export default function OnePager() {
     const p3StatusRef = ref(rtdb, 'settings/pump3Status');
     const unsubP3Status = onValue(p3StatusRef, (snapshot) => setPumps(prev => ({ ...prev, pump3: snapshot.val() === 'on' })));
 
-    // Listen to cycle enabled toggles
     const p1EnRef = ref(rtdb, 'settings/pump1Enabled');
     const unsubP1En = onValue(p1EnRef, (snapshot) => setPumpEnabled(prev => ({ ...prev, p1: snapshot.val() === true })));
     const p2EnRef = ref(rtdb, 'settings/pump2Enabled');
@@ -234,7 +227,6 @@ export default function OnePager() {
     const p3EnRef = ref(rtdb, 'settings/pump3Enabled');
     const unsubP3En = onValue(p3EnRef, (snapshot) => setPumpEnabled(prev => ({ ...prev, p3: snapshot.val() === true })));
 
-    // Listen to cycle settings
     const cycleRef = ref(rtdb, 'settings/pumpCycle');
     const unsubscribeCycle = onValue(cycleRef, (snapshot) => {
       const data = snapshot.val();
@@ -309,7 +301,6 @@ export default function OnePager() {
 
   const anyEnabled = pumpEnabled.p1 || pumpEnabled.p2 || pumpEnabled.p3;
 
-  // Pump Cycle Execution
   useEffect(() => {
     if (!rtdb) return;
 
@@ -333,7 +324,6 @@ export default function OnePager() {
     return () => clearInterval(timer);
   }, [anyEnabled, cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
 
-  // Automation Logic based on Sensor Ranges (Tolerance Approach)
   useEffect(() => {
     if (!rtdb || !sensors) return;
 
@@ -344,16 +334,13 @@ export default function OnePager() {
       }
     };
 
-    // TDS Automation: lower than min -> dosing
     const shouldSolutionsBeOn = sensors.tds < targets.tdsMin;
     syncStatus('settings/solution1Status', solution1, shouldSolutionsBeOn);
     syncStatus('settings/solution2Status', solution2, shouldSolutionsBeOn);
 
-    // Temperature Automation: low -> heater, high -> sprinkler
     let shouldHeaterBeOn = sensors.temperature < targets.tempMin;
     let shouldSprinklerBeOn = sensors.temperature > targets.tempMax;
 
-    // Humidity Automation: below min -> pulse thermal/moisture
     if (sensors.humidity < targets.humidityMin) {
       shouldHeaterBeOn = true;
       shouldSprinklerBeOn = true;
@@ -362,7 +349,6 @@ export default function OnePager() {
     syncStatus('settings/heaterStatus', heater, shouldHeaterBeOn);
     syncStatus('settings/sprinklerStatus', sprinkler, shouldSprinklerBeOn);
 
-    // pH Automation: lower than min -> PH+, higher than max -> PH-
     const shouldPhUpBeOn = sensors.ph < targets.phMin;
     const shouldPhDownBeOn = sensors.ph > targets.phMax;
 
@@ -371,7 +357,6 @@ export default function OnePager() {
 
   }, [sensors, targets, rtdb, solution1, solution2, heater, sprinkler, phUp, phDown]);
 
-  // Sync Hardware Status based on Cycle Phase and individual Enable flags
   useEffect(() => {
     if (!rtdb) return;
 
@@ -388,7 +373,6 @@ export default function OnePager() {
     syncPump(3, pumpEnabled.p3);
   }, [pumpEnabled, cyclePhase, rtdb, pumps]);
 
-  // Manual timer countdowns
   useEffect(() => {
     if (heaterTimeLeft === null) return;
     if (heaterTimeLeft <= 0) {
@@ -538,7 +522,6 @@ export default function OnePager() {
     set(ref(rtdb, 'settings/triggerCapture'), Date.now());
     set(ref(rtdb, 'settings/cameraStatus'), 'capture');
     
-    // Revert to idle after 2 minutes (120,000 ms)
     setTimeout(() => {
       set(ref(rtdb, 'settings/cameraStatus'), 'idle');
     }, 120000);
