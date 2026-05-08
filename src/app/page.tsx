@@ -86,6 +86,7 @@ export default function OnePager() {
   const rtdb = useDatabase();
   
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [latestCaptureTime, setLatestCaptureTime] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [camTimestamp, setCamTimestamp] = useState<number | null>(null);
   const [currentYear, setCurrentYear] = useState<number | null>(null);
@@ -172,6 +173,14 @@ export default function OnePager() {
           waterLevel: data.waterLevel || '---',
         });
         setLastUpdated(new Date().toLocaleTimeString());
+      }
+    });
+
+    const triggerCapRef = ref(rtdb, 'settings/triggerCapture');
+    const unsubscribeTriggerCap = onValue(triggerCapRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        setLatestCaptureTime(new Date(val).toLocaleString());
       }
     });
 
@@ -279,6 +288,7 @@ export default function OnePager() {
 
     return () => {
       unsubscribeSensors();
+      unsubscribeTriggerCap();
       unsubscribeTargets();
       camSubscriptions.forEach(unsub => unsub());
       unsubP1Status();
@@ -324,9 +334,6 @@ export default function OnePager() {
   }, [anyEnabled, cycleSecondsRemaining, cyclePhase, cycleOnMinutes, cycleOffMinutes, rtdb]);
 
   // Automation Logic based on Sensor Ranges (Tolerance Approach)
-  // NOTE: For production 'always-on' automation, this logic should be 
-  // deployed as a Firebase Cloud Function. This client implementation 
-  // serves as a real-time prototype while the tab is open.
   useEffect(() => {
     if (!rtdb || !sensors) return;
 
@@ -834,7 +841,7 @@ export default function OnePager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Nutrient A</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">SOLUTION A</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${solution1 ? 'bg-purple-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleSolution1} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution1 ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'}`}>
@@ -845,7 +852,7 @@ export default function OnePager() {
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Nutrient B</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Solution B</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${solution2 ? 'bg-pink-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={toggleSolution2} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${solution2 ? 'bg-pink-500 text-white' : 'bg-muted text-muted-foreground'}`}>
@@ -858,7 +865,7 @@ export default function OnePager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">pH Boost (Up)</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">PH Solution +</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${phUp ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={togglePhUp} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${phUp ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
@@ -869,7 +876,7 @@ export default function OnePager() {
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">pH Adjust (Down)</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">PH Solution -</span>
                           <div className={`w-1.5 h-1.5 rounded-full ${phDown ? 'bg-amber-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
                         </div>
                         <Button onClick={togglePhDown} className={`w-full h-10 rounded-xl text-[10px] font-bold shadow-sm transition-all active:scale-95 ${phDown ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
@@ -897,12 +904,17 @@ export default function OnePager() {
                         Health Analytics Grid
                       </h4>
                       <p className="text-xs text-muted-foreground">Autonomous AI health scans across all active camera arrays</p>
+                      {latestCaptureTime && (
+                        <p className="text-[10px] text-accent font-bold uppercase tracking-tight mt-1">
+                          Latest Scan: {latestCaptureTime}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-4">
                       <Button onClick={handleTriggerCapture} variant="outline" size="sm" className="text-xs gap-2 border-accent text-accent hover:bg-accent/10 rounded-xl">
                         <Camera className="w-3 h-3" />
-                        Capture Scan
+                        Capture
                       </Button>
                     </div>
                   </div>
